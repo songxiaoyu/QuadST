@@ -6,13 +6,15 @@ output: github_document
 A full description of the method can be found in our [paper](https://doi.org/10.1101/2023.12.04.570019)
 
 ## Installation
-With R, users can install the MiXcan package directly from GitHub with devtools:
 
-## Example of use
+With R, users can install the QuadST package directly from GitHub with devtools:
 ```{r}
 install.packages("devtools")
-devtools::install_github("songxiaoyu/MiXcan/Package")
+devtools::install_github("songxiaoyu/QuadST")
 ```
+
+## Example of use
+
 
 Below demonstrates the QuadST analysis pipeline for a single cell type pair. Multiple cell type pairs can be analyzed in parallel.
 
