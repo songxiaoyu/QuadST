@@ -8,8 +8,10 @@ A full description of the method can be found at XXX
 ## Installation
 
 With R, users can install the QuadST package directly from GitHub with devtools:
-```{r}
-install.packages("devtools")
+```{r, results = 'hide'}
+if (!require("devtools", quietly = TRUE)) install.packages("devtools")
+if (!require("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+BiocManager::install("SingleCellExperiment")
 devtools::install_github("songxiaoyu/QuadST/Rpackage")
 ```
 
@@ -20,17 +22,11 @@ Below demonstrates the QuadST analysis pipeline for a single cell type pair. Mul
 
 ```{r echo = T, results = 'hide'}
 library(QuadST)
-# library(tidyverse)
-# library(SingleCellExperiment)
-# library(spatstat)
-# library(quantreg)
-# library(QRank)
-# library(ACAT)
 ```
 
 ### QuadST analysis pipeline
 Step 1: Create an anchor-neighbor integrated matrix.
-```{r}
+```{r results = 'hide'}
 data("seqFISHplus_scran_sce")
 cell_id = "cellID"
 cell_coord1 = "x"
