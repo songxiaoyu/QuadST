@@ -1,0 +1,16 @@
+create_cellpair_matrix
+                        Create anchor-neighbor cell type pair
+                        integrated matrix
+create_quantile_levels
+                        Create a set of highest and lowest quantiles
+                        symmetric around median
+identify_ICGs           Identify cell-cell interaction changes genes
+                        (IGGs)
+seqFISHplus_scran_sce   An example of spatial transcriptome data
+test_QuadST_model       Test anchor-neighbor distance-expression
+                        association at a set of highest and lowest
+                        quantiles symmetric around median
+transform_count_to_normal
+                        Transform cell-specific bias adjusted counts to
+                        a normally distribution with the minimum value
+                        at zero

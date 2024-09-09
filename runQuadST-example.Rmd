@@ -10,7 +10,7 @@ A full description of the method can be found at XXX
 With R, users can install the QuadST package directly from GitHub with devtools:
 ```{r}
 install.packages("devtools")
-devtools::install_github("songxiaoyu/QuadST")
+devtools::install_github("songxiaoyu/QuadST/Rpackage")
 ```
 
 ## Example of use

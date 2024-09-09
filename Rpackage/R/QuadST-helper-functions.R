@@ -38,7 +38,7 @@
 #' @param tau A set of quantile levels at which test statistics are calculated.
 #' @param alternative By default, use "two-sided-directional".
 #'
-#'
+#' @import QRank quantreg
 #' @return A list of Signed-QRank test results
 #' \item{quantile.specific.pvalue}{Signed-QRank p-value at each quantile.}
 #' \item{quantile.specific.test}{Signed-QRank test statistics at each quantile.}
@@ -68,7 +68,7 @@
   tstat=NULL
   for (l in 1:ltau) {
     tau1=tau[l]
-    ranks = suppressWarnings(rq.fit.br(zz, y, tau = tau1)$dual -  (1 - tau1))
+    ranks = suppressWarnings(quantreg::rq.fit.br(zz, y, tau = tau1)$dual -  (1 - tau1))
     Sn = as.matrix(t(xstar) %*% (ranks))
     VN = tau1*(1-tau1) * Q
 
@@ -129,7 +129,8 @@
 create_quantile_levels <- function(min_sample_per_quantile, cell_count, max_default){
 
     max_ql <- max_default + 1
-    number_of_quantile <- ifelse(round(cell_count/min_sample_per_quantile) < max_ql, round(cell_count/min_sample_per_quantile), max_ql)
+    number_of_quantile <- ifelse(round(cell_count/min_sample_per_quantile) < max_ql,
+                                 round(cell_count/min_sample_per_quantile), max_ql)
     dist_taus <- seq(0, 1, by = 1/number_of_quantile)
     dist_taus <- dist_taus[-c(1, length(dist_taus))]
 

@@ -16,7 +16,8 @@
 #' @export
 #'
 #'
-create_cellpair_matrix <- function(x, cell_id, cell_coord1, cell_coord2, cell_type, anchor, neighbor, cov=NULL){
+create_cellpair_matrix <- function(x, cell_id, cell_coord1, cell_coord2, cell_type,
+                                   anchor, neighbor, cov=NULL){
 
     object <- x
     if ( !is(object, "SingleCellExperiment") )
@@ -81,7 +82,7 @@ create_cellpair_matrix <- function(x, cell_id, cell_coord1, cell_coord2, cell_ty
 #' @param expr A column name of \code{assays(object)} that stores anchor cells' gene expression levels.
 #' @param cov Column names of \code{colData(object)} that needs to be adjusted as covariates.
 #' @param tau A set of highest and lowest quantiles symmetric around median.
-#'
+#' @import QRank
 #'
 #' @return A matrix of quntile regression p-values: genes (rows) by quantiles (columns).
 #' @export
@@ -133,7 +134,10 @@ test_QuadST_model <- function(x, dist, expr, cov=NULL, tau){
     }else{
         # Test distance-expression association for genes with some zeros in expression values.
         genes_w_zeros <- colnames(xMatrix)
-        pvalue <- sapply(genes_w_zeros, function(f) tryCatch(.QRank_multi(y=y, x=cbind(xMatrix[,f], 1*I(xMatrix[,f] != 0)), cov=covM, tau=tau, alternative="two-sided-directional")$quantile.specific.pvalue, error = function(e) NULL), simplify=FALSE)
+        pvalue <- sapply(genes_w_zeros, function(f)
+          tryCatch(.QRank_multi(y=y, x=cbind(xMatrix[,f], 1*I(xMatrix[,f] != 0)),
+                                cov=covM, tau=tau, alternative="two-sided-directional")$quantile.specific.pvalue,
+                   error = function(e) NULL), simplify=FALSE)
         genes_w_zeros <- names(pvalue)[!sapply(pvalue, is.null)]
         pvalue <- as.matrix(dplyr::bind_cols(pvalue[genes_w_zeros])) %>% t()
         pvalue <- matrix(pvalue, ncol=length(tau), dimnames=list(genes_w_zeros, tau))
