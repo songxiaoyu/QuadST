@@ -3,7 +3,7 @@ output: github_document
 ---
 # `QuadST: A Powerful and Robust Approach for Identifying Cell–Cell Interaction-Changed Genes on Spatially Resolved Transcriptomics`
 
-A full description of the method can be found in our [paper](https://doi.org/10.1101/2023.12.04.570019)
+A full description of the method can be found at XXX
 
 ## Installation
 
@@ -20,12 +20,12 @@ Below demonstrates the QuadST analysis pipeline for a single cell type pair. Mul
 
 ```{r echo = T, results = 'hide'}
 library(QuadST)
-library(tidyverse)
-library(SingleCellExperiment)
-library(spatstat)
-library(quantreg)
-library(QRank)
-library(ACAT)
+# library(tidyverse)
+# library(SingleCellExperiment)
+# library(spatstat)
+# library(quantreg)
+# library(QRank)
+# library(ACAT)
 ```
 
 ### QuadST analysis pipeline

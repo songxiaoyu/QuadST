@@ -4,11 +4,7 @@
 #' @param x A point pattern object of class 'ppp'.
 #' @param source_cell A name of cell type for neighbor cells.
 #' @param target_cell A name of cell type for anchor cells.
-#'
-#'
 #' @importFrom magrittr "%>%"
-#'
-#'
 #' @return A dataframe with anchor-neighbor cell pair with distance.
 #'
 #'
@@ -16,7 +12,7 @@
 #'
 #'
 .find_nearest_neighbors <- function(x, source_cell, target_cell){
-    
+
     object <- x
     if ( !is(object, "ppp") )
         stop("Object must be a ppp class: representing a point pattern dataset in the two-dimensional plane.")
@@ -28,7 +24,7 @@
     nn_source <- nn[tcell, source_cell]
     nnd_source <- nnd[tcell, source_cell]
     nn_pair <- cbind.data.frame(target=tcell, source=nn_source, distance=nnd_source) %>% dplyr::arrange(distance)
-    
+
     return(nn_pair)
 }
 
@@ -56,13 +52,13 @@
                                     "two-sided-directional",
                                     "greater-directional",
                                     "less-directional")) {
-  
+
   ltau = length(tau)
   x = as.matrix(x)
   y = as.matrix(y)
   zz = cbind(rep(1, nrow(y)), cov)
   p=ncol(x)
-  
+
   xstar = lm(x ~ zz - 1)$residual
   Q=t(xstar) %*% xstar
 
@@ -75,7 +71,7 @@
     ranks = suppressWarnings(rq.fit.br(zz, y, tau = tau1)$dual -  (1 - tau1))
     Sn = as.matrix(t(xstar) %*% (ranks))
     VN = tau1*(1-tau1) * Q
-    
+
     if (alternative=="two-sided-no-direction") {
       test=t(Sn) %*% solve(VN) %*% Sn
       pvalue=c(pvalue, pchisq(test, df=p, lower.tail = F))
@@ -99,7 +95,7 @@
   names(pvalue)=tau
   colnames(tstat)=tau
   rownames(tstat)=c(paste0("x", 1:length(z_each)), "x")
-  
+
   return(list(quantile.specific.pvalue = pvalue, quantile.specific.test = tstat))
 }
 
@@ -131,12 +127,12 @@
 #'
 #'
 create_quantile_levels <- function(min_sample_per_quantile, cell_count, max_default){
-    
+
     max_ql <- max_default + 1
     number_of_quantile <- ifelse(round(cell_count/min_sample_per_quantile) < max_ql, round(cell_count/min_sample_per_quantile), max_ql)
     dist_taus <- seq(0, 1, by = 1/number_of_quantile)
     dist_taus <- dist_taus[-c(1, length(dist_taus))]
-    
+
     return(dist_taus)
 }
 
@@ -155,13 +151,13 @@ create_quantile_levels <- function(min_sample_per_quantile, cell_count, max_defa
 #'
 #'
 transform_count_to_normal <- function(x){
-    
+
     # Step 1 ---------------------------
     # Transform a given distribution to a normal distribution.
     fun_ecdf <- ecdf(x)
     x_ecdf <- fun_ecdf(x)
     x_norm <- qnorm(x_ecdf)
-    
+
     # Step 2 ---------------------------
     # If the maximum of ecdf value (x_ecdf) is equal to 1, the inverse of cdf (x_norm) can become infinity.
     # Ensure that the maximum of ecdf value (x_ecdf) is less than 1.
@@ -171,11 +167,11 @@ transform_count_to_normal <- function(x){
         x_ecdf <- fun_ecdf(x_num)[-length(as.numeric(x_num))]
         x_norm <- qnorm(x_ecdf)
     }
-    
+
     # Step 3 ---------------------------
     # Set the minimum value of a normal distribution at 0.
     x_norm_minzero <- matrix(x_norm, nrow=nrow(x), ncol=ncol(x), dimnames=list(rownames(x), colnames(x))) - min(x_norm)
-    
+
     return(x_norm_minzero)
 }
 
@@ -185,25 +181,25 @@ transform_count_to_normal <- function(x){
 #'
 #'
 #' @param x A quantile regression p-value matrix: genes by quantiles.
+#' @import ACAT
 #'
-#'
-#' @return A Caucy combination test p-value matrix: genes by quantiles (without the median quantile).
+#' @return A Cauchy combination test p-value matrix: genes by quantiles (without the median quantile).
 #'
 #'
 #' @noRd
 #'
 #'
 .ACAT_QRpvalue <- function(x){
-        
+
         object <- x
         if ( !is(object, "matrix") )
          stop("Object must be a matrix.")
-        if ( is_empty(colnames(object)) )
+        if ( rlang::is_empty(colnames(object)) )
          stop("Matrix column names should specificy the quantile level of each column.")
-        
+
         y_taus <- colnames(object)
         L <- length(y_taus)
-        
+
         # If the length of quantile levels is even:
         if (L %% 2 == 1) {
             qC <- ceiling(L/2)
@@ -216,20 +212,20 @@ transform_count_to_normal <- function(x){
             qL <- qLR[[1]]
             qR <- qLR[[2]]
         }
-        
+
         # If the length of quantile levels is odd:
         if (length(qL) == 1) {
             QR_LR <- object[,c(qL, qR)]
         }else if (length(qL) > 1) {
-            QR_L <- apply(object, 1, function(q) sapply(qL, function(z) ACAT(q[1:z])))
+            QR_L <- apply(object, 1, function(q) sapply(qL, function(z) ACAT::ACAT(q[1:z])))
             rownames(QR_L) <- y_taus[qL]
             QR_L <- QR_L %>% t(.)
-            QR_R <- apply(object, 1, function(q) sapply(qR, function(z) ACAT(q[z:L])))
+            QR_R <- apply(object, 1, function(q) sapply(qR, function(z) ACAT::ACAT(q[z:L])))
             rownames(QR_R) <- y_taus[qR]
             QR_R <- QR_R %>% t(.)
             QR_LR <- cbind(QR_L, QR_R)
         }
-        
+
         return(QR_LR)
 }
 
@@ -273,26 +269,26 @@ transform_count_to_normal <- function(x){
 #'
 #'
 .control_eFDR <- function(x, pvalue_cutoff = p_thres, ABratio_cutoff = fdr, ABconst = ABconst){
-    
+
     pvalue <- x
     if ( !is(pvalue, "matrix") )
      stop("Object must be a matrix")
-    
+
     L <- ncol(pvalue)
     M <- round(L/2)
     q_index <- 1:M
     pvalue_q <- pvalue[,q_index]
     pvalue_q_sort <- sort(pvalue_q)
     pvalue_q_cutoffs <- pvalue_q_sort[which(pvalue_q_sort <= pvalue_cutoff)]
-    
+
     # Step 1 ---------------------------
     # Calculate empirically estimated FDR (A to B ratio) as lowering p value cutoff at a given quantile. (pvalue_q_cutoffs)
     ABratio_q <- lapply(pvalue_q_cutoffs, function(x) .cal_ABratio(pvalue, p_cutoff=x, ABconst=0.1) )
-    
+
     # Step 2 ---------------------------
     # Find if there exist a pvalue (pvalue_q_cutoffs) where empirically estimated FDR (A to B ratio) is less than 0.1 for each quantile.
     Q <- sapply(q_index, function(x) any(sapply(ABratio_q, "[[", x) <= ABratio_cutoff) )
-    
+
     # Step 3 ---------------------------
     # If there exists a quantile where empirically estimated FDR (A to B ratio) is less than 0.1,
     # Summarize the results:
@@ -307,7 +303,7 @@ transform_count_to_normal <- function(x){
         ABratio <- sapply(q_index, function(x) sapply(ABratio_q, "[[", x)[Qpos[x]])
         pvalue_Q_cutoff <- pvalue_q_cutoffs[Qpos]
         Q_index <- q_index[Q]
-            
+
         if (length(Q_index) == 1){
             sig_gene <- pvalue[,Q_index] <= pvalue_Q_cutoff[Q_index]
             sig_gene_count <- sum(sig_gene)
@@ -330,7 +326,7 @@ transform_count_to_normal <- function(x){
         sig_gene_count <- NA
         sig_gene_id <- NA
     }
-    
+
     return(list(ABratio=ABratio, p_cutoff=pvalue_Q_cutoff, sig_gene_count=sig_gene_count, q_status=Q_taus, sig_gene=sig_gene, sig_gene_id=sig_gene_id))
 }
 
@@ -351,11 +347,11 @@ transform_count_to_normal <- function(x){
 #'
 #'
 .cal_ABratio <- function(x, p_cutoff, ABconst = 0.1){
-    
+
     pvalue <- x
     if ( !is(pvalue, "matrix") )
      stop("Object must be a matrix")
-    
+
     # Step 1 ---------------------------
     # Transform Caucy combination test p-value matrix: genes by quantiles (without the median quantile)
     # into a matrix with its element indicating p-value is lower than a pvalue cutoff (p_cutoff).
@@ -378,6 +374,6 @@ transform_count_to_normal <- function(x){
         ABratio <- is.finite(ABratio)*ABratio
         names(ABratio) <-  colnames(pvalue)[1:q]
     }
-    
+
     return(ABratio)
 }
