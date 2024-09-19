@@ -102,7 +102,7 @@ test_QuadST_model <- function(x, dist, expr, cov=NULL, tau){
     # Set y: anchor-neigbhor distance, x: anchor cells'gene expression levels, and z: covariates.
     y <- colData(object)[[dist]]
     x <- t(assay(object, expr))
-    
+
 
     # Step 2 ---------------------------
     # Remove genes with all zeros in expression values.
@@ -114,40 +114,45 @@ test_QuadST_model <- function(x, dist, expr, cov=NULL, tau){
     if (!is.null(cov)){
         z <- colData(object)[[cov]]
         covM <- model.matrix( ~ z)[, c(-1)]
-    } else {covM=NULL } 
+    } else {covM=NULL }
 
     # Step 3 ---------------------------
     # Test anchor-neighbor distance-expression association at a series of quantile levels.
     if (length(which(colSums(xMatrix==0)==0)) != 0) {
-        # Test the distance-expression association for genes with no zeros in expression values.
-        genes_wo_zeros <- colnames(xMatrix)[which(colSums(xMatrix==0)==0)]
-        pvalue <- tryCatch(sapply(genes_wo_zeros, function(f) 
-          QRank(gene=y, snp=xMatrix[,f], cov=covM, tau=tau)$quantile.specific.pvalue) %>% t(.), 
+
+      genes_wo_zeros <- colnames(xMatrix)[which(colSums(xMatrix==0)==0)]
+      genes_w_zeros <- setdiff(colnames(xMatrix), genes_wo_zeros)
+
+      # Test the distance-expression association for genes with no zeros in expression values.
+
+
+        pvalue1 <- tryCatch(sapply(genes_wo_zeros, function(f)
+          QRank(gene=y, snp=xMatrix[,f], cov=covM, tau=tau)$quantile.specific.pvalue) %>% t(.),
           error = function(e) NULL)
 
         # Test the distance-expression association for genes with some zeros in expression values.
-        genes_w_zeros <- setdiff(colnames(xMatrix), genes_wo_zeros)
-        pvalue1 <- sapply(genes_w_zeros, function(f) 
-          tryCatch(.QRank_multi(y=y, x=cbind(xMatrix[,f], 1*I(xMatrix[,f] != 0)), 
-                                cov=covM, tau=tau, alternative="two-sided-directional")$quantile.specific.pvalue, 
+
+        pvalue2 <- sapply(genes_w_zeros, function(f)
+          tryCatch(.QRank_multi(y=y, x=cbind(xMatrix[,f], 1*I(xMatrix[,f] != 0)),
+                                cov=covM, tau=tau, alternative="two-sided-directional")$quantile.specific.pvalue,
                    error = function(e) NULL), simplify=FALSE)
-        genes_w_zeros <- names(pvalue1)[!sapply(pvalue1, is.null)]
-        pvalue1 <- as.matrix(dplyr::bind_cols(pvalue1[genes_w_zeros])) %>% t()
+        genes_w_zeros_re <- names(pvalue2)[!sapply(pvalue2, is.null)]
+        pvalue2_re <- as.matrix(dplyr::bind_cols(pvalue2[genes_w_zeros_re])) %>% t()
 
         # Combine p-values for genes with no zeros and with some zeros in expression values.
-        genes_w_QRpvalue <- colnames(xMatrix)[colnames(xMatrix) %in% c(genes_wo_zeros, genes_w_zeros)]
-        pvalue <- rbind(pvalue, pvalue1)[genes_w_QRpvalue,]
+        genes_w_QRpvalue <- colnames(xMatrix)[colnames(xMatrix) %in% c(genes_wo_zeros, genes_w_zeros_re)]
+        pvalue <- rbind(pvalue1, pvalue2_re)[genes_w_QRpvalue,] # reorder genes to input
     }else{
         # Test distance-expression association for genes with some zeros in expression values.
         genes_w_zeros <- colnames(xMatrix)
-        pvalue <- sapply(genes_w_zeros, function(f)
+        pvalue2 <- sapply(genes_w_zeros, function(f)
           tryCatch(.QRank_multi(y=y, x=cbind(xMatrix[,f], 1*I(xMatrix[,f] != 0)),
-                                cov=covM, tau=tau, 
+                                cov=covM, tau=tau,
                                 alternative="two-sided-directional")$quantile.specific.pvalue,
                    error = function(e) NULL), simplify=FALSE)
-        genes_w_zeros <- names(pvalue)[!sapply(pvalue, is.null)]
-        pvalue <- as.matrix(dplyr::bind_cols(pvalue[genes_w_zeros])) %>% t()
-        pvalue <- matrix(pvalue, ncol=length(tau), dimnames=list(genes_w_zeros, tau))
+        genes_w_zeros_re <- names(pvalue2)[!sapply(pvalue2, is.null)]
+        pvalue2_re <- as.matrix(dplyr::bind_cols(pvalue[genes_w_zeros_re])) %>% t()
+        pvalue <- matrix(pvalue2_re, ncol=length(tau), dimnames=list(genes_w_zeros_re, tau))
     }
 
     return(pvalue)
