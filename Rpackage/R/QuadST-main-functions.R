@@ -60,7 +60,7 @@ create_cellpair_matrix <- function(x, cell_id, cell_coord1, cell_coord2, cell_ty
     anchor_id <- colData(object)[[cell_id]][nn_pairs$target]
 
     # Step 3 ---------------------------
-    # Subset sce object using anchor cell ids with nearest neigbhor cell ids and distances.
+    # Subset sce object using anchor cell ids with nearest neighbor cell ids and distances.
     sce_anchor <- object[, object[[cell_id]] %in% anchor_id]
     sce_anchor <- sce_anchor[, match(anchor_id, sce_anchor[[cell_id]])]
     colData(sce_anchor)$distance <- distance
@@ -102,7 +102,7 @@ test_QuadST_model <- function(x, dist, expr, cov=NULL, tau){
     # Set y: anchor-neigbhor distance, x: anchor cells'gene expression levels, and z: covariates.
     y <- colData(object)[[dist]]
     x <- t(assay(object, expr))
-    z <- colData(object)[[cov]]
+    
 
     # Step 2 ---------------------------
     # Remove genes with all zeros in expression values.
@@ -112,19 +112,25 @@ test_QuadST_model <- function(x, dist, expr, cov=NULL, tau){
         xMatrix <- x
     }
     if (!is.null(cov)){
+        z <- colData(object)[[cov]]
         covM <- model.matrix( ~ z)[, c(-1)]
-    }
+    } else {covM=NULL } 
 
     # Step 3 ---------------------------
     # Test anchor-neighbor distance-expression association at a series of quantile levels.
     if (length(which(colSums(xMatrix==0)==0)) != 0) {
         # Test the distance-expression association for genes with no zeros in expression values.
         genes_wo_zeros <- colnames(xMatrix)[which(colSums(xMatrix==0)==0)]
-        pvalue <- tryCatch(sapply(genes_wo_zeros, function(f) QRank(gene=y, snp=xMatrix[,f], cov=covM, tau=tau)$quantile.specific.pvalue) %>% t(.), error = function(e) NULL)
+        pvalue <- tryCatch(sapply(genes_wo_zeros, function(f) 
+          QRank(gene=y, snp=xMatrix[,f], cov=covM, tau=tau)$quantile.specific.pvalue) %>% t(.), 
+          error = function(e) NULL)
 
         # Test the distance-expression association for genes with some zeros in expression values.
         genes_w_zeros <- setdiff(colnames(xMatrix), genes_wo_zeros)
-        pvalue1 <- sapply(genes_w_zeros, function(f) tryCatch(.QRank_multi(y=y, x=cbind(xMatrix[,f], 1*I(xMatrix[,f] != 0)), cov=covM, tau=tau, alternative="two-sided-directional")$quantile.specific.pvalue, error = function(e) NULL), simplify=FALSE)
+        pvalue1 <- sapply(genes_w_zeros, function(f) 
+          tryCatch(.QRank_multi(y=y, x=cbind(xMatrix[,f], 1*I(xMatrix[,f] != 0)), 
+                                cov=covM, tau=tau, alternative="two-sided-directional")$quantile.specific.pvalue, 
+                   error = function(e) NULL), simplify=FALSE)
         genes_w_zeros <- names(pvalue1)[!sapply(pvalue1, is.null)]
         pvalue1 <- as.matrix(dplyr::bind_cols(pvalue1[genes_w_zeros])) %>% t()
 
@@ -136,7 +142,8 @@ test_QuadST_model <- function(x, dist, expr, cov=NULL, tau){
         genes_w_zeros <- colnames(xMatrix)
         pvalue <- sapply(genes_w_zeros, function(f)
           tryCatch(.QRank_multi(y=y, x=cbind(xMatrix[,f], 1*I(xMatrix[,f] != 0)),
-                                cov=covM, tau=tau, alternative="two-sided-directional")$quantile.specific.pvalue,
+                                cov=covM, tau=tau, 
+                                alternative="two-sided-directional")$quantile.specific.pvalue,
                    error = function(e) NULL), simplify=FALSE)
         genes_w_zeros <- names(pvalue)[!sapply(pvalue, is.null)]
         pvalue <- as.matrix(dplyr::bind_cols(pvalue[genes_w_zeros])) %>% t()
