@@ -17,7 +17,7 @@
 #'
 #'
 create_cellpair_matrix <- function(x, cell_id, cell_coord1, cell_coord2, cell_type,
-                                   anchor, neighbor, cov=NULL){
+                                   anchor, neighbor){
 
     object <- x
     if ( !is(object, "SingleCellExperiment") )
@@ -34,8 +34,6 @@ create_cellpair_matrix <- function(x, cell_id, cell_coord1, cell_coord2, cell_ty
         stop("anchor argument must match with an annotated cell type")
     if ( !any(neighbor %in% unique(colData(object)[[cell_type]])) )
         stop("neighbor argument must match with an annotated cell type")
-    if ( !all(cov %in% colnames(colData(object))) )
-        stop("cov argument must match with columns in colData(object)")
 
     # Step 1 ---------------------------
     # Create 2d spatial point pattern object using spatstat R package
@@ -46,7 +44,7 @@ create_cellpair_matrix <- function(x, cell_id, cell_coord1, cell_coord2, cell_ty
     sce_yrange <- c(min(sce_y) - 1, max(sce_y) + 1)
     sce_ppp <- spatstat.geom::ppp(x=sce_x, y=sce_y, xrange=sce_xrange, yrange=sce_yrange, marks=sce_mk)
     sce_ppp[[cell_id]] <- colData(object)[[cell_id]]
-    sce_ppp[[cov]] <- colData(object)[[cov]]
+
     # References for incorporating 3d spatial point pattern
     # https://inside.mines.edu/~jdzimmer/tutorials/Section1.html
     # https://github.com/aproudian2/rapt/tree/master/R
