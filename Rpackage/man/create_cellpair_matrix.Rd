@@ -11,8 +11,7 @@ create_cellpair_matrix(
   cell_coord2,
   cell_type,
   anchor,
-  neighbor,
-  cov = NULL
+  neighbor
 )
 }
 \arguments{
@@ -29,8 +28,6 @@ create_cellpair_matrix(
 \item{anchor}{A name of cell type to be used for anchor cell type.}
 
 \item{neighbor}{A name of cell type to be used for neighbor cell type.}
-
-\item{cov}{Column names of \code{colData(object)} that need to be adjusted as covariates.}
 }
 \value{
 A \code{SingleCellExperiment} class with an anchor-neighbor cell type pair integrated matrix

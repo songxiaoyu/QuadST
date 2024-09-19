@@ -9,7 +9,6 @@
 #' @param cell_type A column name of \code{colData(object)} that stores cell types of each cell.
 #' @param anchor A name of cell type to be used for anchor cell type.
 #' @param neighbor A name of cell type to be used for neighbor cell type.
-#' @param cov Column names of \code{colData(object)} that need to be adjusted as covariates.
 #'
 #'
 #' @return A \code{SingleCellExperiment} class with an anchor-neighbor cell type pair integrated matrix
