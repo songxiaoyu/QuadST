@@ -138,7 +138,8 @@ test_QuadST_model <- function(x, dist, expr, cov=NULL, tau){
 
         # Combine p-values for genes with no zeros and with some zeros in expression values.
         genes_w_QRpvalue <- colnames(xMatrix)[colnames(xMatrix) %in% c(genes_wo_zeros, genes_w_zeros_re)]
-        pvalue <- rbind(pvalue1, pvalue2_re)[genes_w_QRpvalue,] # reorder genes to input
+        pvalue <- rbind(pvalue1, pvalue2_re)
+        # pvalue <- rbind(pvalue1, pvalue2_re)[genes_w_QRpvalue,] # reorder genes to input
     }else{
         # Test distance-expression association for genes with some zeros in expression values.
         genes_w_zeros <- colnames(xMatrix)
@@ -148,7 +149,7 @@ test_QuadST_model <- function(x, dist, expr, cov=NULL, tau){
                                 alternative="two-sided-directional")$quantile.specific.pvalue,
                    error = function(e) NULL), simplify=FALSE)
         genes_w_zeros_re <- names(pvalue2)[!sapply(pvalue2, is.null)]
-        pvalue2_re <- as.matrix(dplyr::bind_cols(pvalue[genes_w_zeros_re])) %>% t()
+        pvalue2_re <- as.matrix(dplyr::bind_cols(pvalue2[genes_w_zeros_re])) %>% t()
         pvalue <- matrix(pvalue2_re, ncol=length(tau), dimnames=list(genes_w_zeros_re, tau))
     }
 
@@ -191,7 +192,7 @@ identify_ICGs <- function(x, y, dist, expr, cov = NULL, tau, p_thres = 0.05, fdr
         stop("dist argument must match with a column in colData(object)")
     if ( !any(expr %in% names(assays(object1))) )
         stop("expr argument must match with a column in colData(object)")
-    if ( !all(cov %in% colnames(colData(object1))) )
+    if ( is.null(cov)==F & !all(cov %in% colnames(colData(object1))) )
         stop("cov argument must match with columns in colData(object)")
     if ( !is(object2, "matrix") )
      stop("Object must be a matrix")
@@ -222,8 +223,8 @@ identify_ICGs <- function(x, y, dist, expr, cov = NULL, tau, p_thres = 0.05, fdr
         # Calculate directional association scores at the identified cell-cell interaction quantile (q_int).
         y <- colData(object1)[[dist]]
         x <- t(assay(object1, expr))
-        z <- colData(object1)[[cov]]
-        covM <- model.matrix( ~ z)[,-c(1)]
+
+        if (is.null(cov) ==F) { z <- colData(object1)[[cov]];covM <- model.matrix( ~ z)[,-c(1)]} else (covM=NULL)
         q_tau <- as.numeric(names(q_int))
 
         genes <- rownames(object1)
