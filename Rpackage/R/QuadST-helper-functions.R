@@ -269,66 +269,52 @@ transform_count_to_normal <- function(x){
 #' @noRd
 #'
 #'
-.control_eFDR <- function(x, pvalue_cutoff = p_thres, ABratio_cutoff = fdr, ABconst = ABconst){
+.control_eFDR <- function(x, fdr = fdr){
 
     pvalue <- x
-    if ( !is(pvalue, "matrix") )
-     stop("Object must be a matrix")
+    if ( !is(pvalue, "matrix") ) stop("Object must be a matrix")
 
     L <- ncol(pvalue)
-    M <- round(L/2)
-    q_index <- 1:M
-    pvalue_q <- pvalue[,q_index]
-    pvalue_q_sort <- sort(pvalue_q)
-    pvalue_q_cutoffs <- pvalue_q_sort[which(pvalue_q_sort <= pvalue_cutoff)]
-
-    # Step 1 ---------------------------
-    # Calculate empirically estimated FDR (A to B ratio) as lowering p value cutoff at a given quantile. (pvalue_q_cutoffs)
-    ABratio_q <- lapply(pvalue_q_cutoffs, function(x) .cal_ABratio(pvalue, p_cutoff=x, ABconst=0.1) )
-
-    # Step 2 ---------------------------
-    # Find if there exist a pvalue (pvalue_q_cutoffs) where empirically estimated FDR (A to B ratio) is less than 0.1 for each quantile.
-    Q <- sapply(q_index, function(x) any(sapply(ABratio_q, "[[", x) <= ABratio_cutoff) )
-
-    # Step 3 ---------------------------
-    # If there exists a quantile where empirically estimated FDR (A to B ratio) is less than 0.1,
-    # Summarize the results:
-    #  (i) empirically estimated FDR (A to B ratio)
-    #  (ii) p value threshold (pvalue_q_cutoffs)
-    #  (iii) number of signficant genes
-    #  (iv) if there are quantiles where empirically estimated FDR (A to B ratio) is less than 0.1
-    #  (v) if each gene is significant at each quantile
-    #  (vi) ICG names (sig_gene_id)
-    if (any(Q)){
-        Qpos <- sapply(q_index, function(x) suppressWarnings(max(which(sapply(ABratio_q, "[[", x) <= ABratio_cutoff))))
-        ABratio <- sapply(q_index, function(x) sapply(ABratio_q, "[[", x)[Qpos[x]])
-        pvalue_Q_cutoff <- pvalue_q_cutoffs[Qpos]
-        Q_index <- q_index[Q]
-
-        if (length(Q_index) == 1){
-            sig_gene <- pvalue[,Q_index] <= pvalue_Q_cutoff[Q_index]
-            sig_gene_count <- sum(sig_gene)
-            Q_taus <- colnames(pvalue)[Q_index]
-            sig_gene_id <- names(sig_gene)[sig_gene]
-            names(ABratio) <- names(pvalue_Q_cutoff) <- names(sig_gene_count) <- Q_taus
-        }else if(length(Q_index) > 1){
-            sig_gene <- sapply(Q_index, function(x) pvalue[,x] <= pvalue_Q_cutoff[x])
-            sig_gene_count <- sapply(1:length(Q_index), function(x) sum(sig_gene[,x]))
-            sig_gene_id_allQ <- sapply(1:length(Q_index), function(x) rownames(sig_gene)[sig_gene[,x]])
-            Q_taus <-  colnames(pvalue)[Q_index]
-            sig_gene_id <- sig_gene_id_allQ[which.max(sig_gene_count)] %>% unlist(.)
-            names(ABratio) <- names(pvalue_Q_cutoff) <- names(sig_gene_count) <- Q_taus
-        }
-    }else{
-        ABratio <- NA
-        pvalue_Q_cutoff <- NA
-        Q_taus <- NA
-        sig_gene <- NA
-        sig_gene_count <- NA
-        sig_gene_id <- NA
+    M <- floor(L/2)
+    eFDR =NoSig = vector("list", length = M)
+    for (m in 1:M) {
+      pB=pvalue[,m] # near - ICG
+      pA=pvalue[,(L-m)] # further
+      cuts=pB*1.0001
+      # cuts=cuts[which(cuts<pvalue_cutoff)]
+      # cuts=cuts[order(cuts)]
+      nA=sapply(cuts, function(f) sum(pA<f))
+      nB=sapply(cuts, function(f) sum(pB<f))
+      eFDR1= (nA+0.001)/(nB+0.001)
+      
+      o <- order(pB, decreasing = TRUE)
+      ro <- order(o)
+      eFDR1_clean=pmin(1, cummin(eFDR1[o]))[ro]
+      names(eFDR1_clean)=names(eFDR1)
+      eFDR[[m]]=eFDR1_clean
+      NoSig[[m]]=sum(eFDR1_clean<ABratio_cutoff)
     }
 
-    return(list(ABratio=ABratio, p_cutoff=pvalue_Q_cutoff, sig_gene_count=sig_gene_count, q_status=Q_taus, sig_gene=sig_gene, sig_gene_id=sig_gene_id))
+    if (any(unlist(NoSig)>0)) {
+      idx_ICG=which.max(NoSig)
+      Q_taus=colnames(pvalue)[idx_ICG]
+      pB_ICG=pvalue[,idx_ICG]
+      eFDR_ICG=eFDR[[idx_ICG]]
+      sig_gene_count=sum(eFDR_ICG<fdr)
+      sig_gene_id=names(which(eFDR_ICG<fdr))
+      sig_gene_data=data.frame(Gene=sig_gene_id, pvalue=pB_ICG[which(eFDR_ICG<fdr)],
+                               eFDR=eFDR_ICG[which(eFDR_ICG<fdr)])
+      sig_gene_data=sig_gene_data[order(sig_gene_data$pvalue),]
+
+    }else{
+
+      Q_taus =      sig_gene_data =      sig_gene_count =      sig_gene_id = NA
+    }
+
+    q_index <- 1:M
+
+    return(list(q_status=Q_taus, sig_gene_count=sig_gene_count,
+                sig_gene_data=sig_gene_data, sig_gene_id=sig_gene_id))
 }
 
 

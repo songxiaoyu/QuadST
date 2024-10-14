@@ -76,7 +76,7 @@ create_cellpair_matrix <- function(x, cell_id, cell_coord1, cell_coord2, cell_ty
 #'
 #' @param x A \code{SingleCellExperiment} class.
 #' @param dist A column name of \code{colData(object)} that stores anchor-neighbor cell pair distances.
-#' @param expr A column name of \code{assays(object)} that stores anchor cells' gene expression levels.
+#' @param datatype A column name of \code{assays(object)} that stores anchor cells' gene expression levels.
 #' @param cov Column names of \code{colData(object)} that needs to be adjusted as covariates.
 #' @param tau A set of highest and lowest quantiles symmetric around median.
 #' @import QRank
@@ -85,20 +85,20 @@ create_cellpair_matrix <- function(x, cell_id, cell_coord1, cell_coord2, cell_ty
 #' @export
 #'
 #'
-test_QuadST_model <- function(x, dist, expr, cov=NULL, tau){
+test_QuadST_model <- function(x, dist, datatype, cov=NULL, tau){
 
     object <- x
     if ( !is(object, "SingleCellExperiment") )
         stop("Object must be a SingleCellExperiment class")
     if ( !any(dist %in% colnames(colData(object))) )
         stop("dist argument must match with a column in colData(object)")
-    if ( !any(expr %in% names(assays(object))) )
-        stop("expr argument must match with a column in colData(object)")
+    if ( !any(datatype %in% names(assays(object))) )
+        stop("datatype argument must match with a column in colData(object)")
 
     # Step 1 ---------------------------
     # Set y: anchor-neigbhor distance, x: anchor cells'gene expression levels, and z: covariates.
     y <- colData(object)[[dist]]
-    x <- t(assay(object, expr))
+    x <- t(assay(object, datatype))
 
 
     # Step 2 ---------------------------
@@ -163,7 +163,7 @@ test_QuadST_model <- function(x, dist, expr, cov=NULL, tau){
 #' @param x A \code{SingleCellExperiment} class.
 #' @param y A matrix of quntile regression p-values: genes (rows) by quantiles (columns).
 #' @param dist A column name of \code{colData(object1)} that stores anchor-neighbor cell pair distances.
-#' @param expr A column name of \code{assays(object1)} that stores anchor cells' gene expression levels.
+#' @param datatype A column name of \code{assays(object1)} that stores anchor cells' gene expression levels.
 #' @param cov Column names of \code{colData(object1)} that need to be adjusted as covariates.
 #' @param tau A set of quantile levels at which test statistics are calculated.
 #' @param p_thres An initial p-value threshold value. Use 0.05 by default. This serves as a starting point to find a significant p-value with the empirical FDR procedure.
@@ -182,60 +182,26 @@ test_QuadST_model <- function(x, dist, expr, cov=NULL, tau){
 #' @export
 #'
 #'
-identify_ICGs <- function(x, y, dist, expr, cov = NULL, tau, p_thres = 0.05, fdr = 0.1, ABconst = 0.1){
+identify_ICGs <- function(pMatrix, fdr = 0.1){
 
-    object1 <- x
-    object2 <- y
-    if ( !is(object1, "SingleCellExperiment") )
-        stop("Object must be a SingleCellExperiment class")
-    if ( !any(dist %in% colnames(colData(object1))) )
-        stop("dist argument must match with a column in colData(object)")
-    if ( !any(expr %in% names(assays(object1))) )
-        stop("expr argument must match with a column in colData(object)")
-    if ( is.null(cov)==F & !all(cov %in% colnames(colData(object1))) )
-        stop("cov argument must match with columns in colData(object)")
-    if ( !is(object2, "matrix") )
+    object <- pMatrix
+    if ( !is(object, "matrix") )
      stop("Object must be a matrix")
 
     # Step 1 ---------------------------
     # Calculate combined gene-specific p-values across each highest and lowest quantiles symmetrically around
     # the median quantile (0.5).
-    ACATpvalue <- .ACAT_QRpvalue(object2)
+    ACATpvalue <- .ACAT_QRpvalue(object)
 
     # Step 2 ---------------------------
     # Identify ICGs controlling empirical false discovery rate
-    res <- .control_eFDR(ACATpvalue, pvalue_cutoff = p_thres, ABratio_cutoff = fdr, ABconst = ABconst)
-    ABratio <- res[["ABratio"]]
+    res <- .control_eFDR(ACATpvalue, fdr = fdr)
+
     q_status <- res[["q_status"]]
-    q_sig <- sapply(q_status, function(x) !is.na(x))
-    p_cutoff <- res[["p_cutoff"]]
     sig_gene_count <- res[["sig_gene_count"]]
-    sig_gene_pvalue <- res[["sig_gene"]]
+    sig_gene_data <- res[["sig_gene_data"]]
     sig_gene_id <- res[["sig_gene_id"]]
-    q_int <- which.max(sig_gene_count)
 
-    # Step 3 ---------------------------
-    # Calculate directional association scores if an cell-cell interaction quantile (q_int) is identified.
-    if (any(q_sig)){
-        # Calculate an anchor-neighbor cell interaction distance from the identified cell-cell interaction quantile (q_int).
-        dist_int <- quantile(colData(object1)[, dist], prob=as.numeric(names(q_int)))
+    return(list(ACAT=ACATpvalue, sig_gene_count=sig_gene_count, sig_gene_data=sig_gene_data, ICGs=sig_gene_id))
 
-        # Calculate directional association scores at the identified cell-cell interaction quantile (q_int).
-        y <- colData(object1)[[dist]]
-        x <- t(assay(object1, expr))
-
-        if (is.null(cov) ==F) { z <- colData(object1)[[cov]];covM <- model.matrix( ~ z)[,-c(1)]} else (covM=NULL)
-        q_tau <- as.numeric(names(q_int))
-
-        genes <- rownames(object1)
-        tstat <- sapply(genes, function(f) tryCatch(.QRank_multi(y=y, x=cbind(x[,f], 1*I(x[,f] != 0)), cov=covM, tau=q_tau, alternative="two-sided-directional")$quantile.specific.test["x",], error = function(e) NULL), simplify=TRUE)
-        q_ACATpvalue <- ACATpvalue[genes,  as.character(q_tau)]
-        q_tstat <- unlist(tstat)[names(q_ACATpvalue)]
-        DAscore <- -log10(q_ACATpvalue)*sign(q_tstat)
-    }else{
-        dist_int <- NA
-        DAscore <- NA
-    }
-
-    return(list(ACAT=ACATpvalue, p_sig=p_cutoff, q_sig=q_sig, ICGs=sig_gene_id, q_int=q_int, dist_int=dist_int, DA_score=DAscore))
 }
