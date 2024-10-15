@@ -9,14 +9,17 @@
 #' @param cell_type A column name of \code{colData(object)} that stores cell types of each cell.
 #' @param anchor A name of cell type to be used for anchor cell type.
 #' @param neighbor A name of cell type to be used for neighbor cell type.
+#' @param k Default = 1. Find k nearest neighbors for the anchor cell.
+#' @param d.limit Default=Inf. The limit of cell-cell distance for cell pairing. Cells over this distance limit
+#' will not be paired even though they are the k nearest neighbors.
 #'
 #'
-#' @return A \code{SingleCellExperiment} class with an anchor-neighbor cell type pair integrated matrix
+#' @return An anchor-neighbor integrated matrix in the \code{SingleCellExperiment} class.
 #' @export
 #'
 #'
-create_cellpair_matrix <- function(x, cell_id, cell_coord1, cell_coord2, cell_type,
-                                   anchor, neighbor){
+create_integrated_matrix <- function(x, cell_id, cell_coord1, cell_coord2, cell_type,
+                                   anchor, neighbor, k=1, d.limit=Inf){
 
     object <- x
     if ( !is(object, "SingleCellExperiment") )
@@ -29,9 +32,9 @@ create_cellpair_matrix <- function(x, cell_id, cell_coord1, cell_coord2, cell_ty
         stop("cell_coord2 argument must match with a column in colData(object)")
     if ( !any(cell_type %in% colnames(colData(object))) )
         stop("cell_type argument must match with a column in colData(object)")
-    if ( !any(anchor %in% unique(colData(object)[[cell_type]])) )
+    if ( !any(anchor %in% unique(SingleCellExperiment::colData(object)[[cell_type]])) )
         stop("anchor argument must match with an annotated cell type")
-    if ( !any(neighbor %in% unique(colData(object)[[cell_type]])) )
+    if ( !any(neighbor %in% unique(SingleCellExperiment::colData(object)[[cell_type]])) )
         stop("neighbor argument must match with an annotated cell type")
 
     # Step 1 ---------------------------
@@ -41,32 +44,70 @@ create_cellpair_matrix <- function(x, cell_id, cell_coord1, cell_coord2, cell_ty
     sce_y <- colData(object)[[cell_coord2]]
     sce_xrange <- c(min(sce_x) - 1, max(sce_x) + 1)
     sce_yrange <- c(min(sce_y) - 1, max(sce_y) + 1)
-    sce_ppp <- spatstat.geom::ppp(x=sce_x, y=sce_y, xrange=sce_xrange, yrange=sce_yrange, marks=sce_mk)
+    sce_ppp <- spatstat.geom::ppp(x=sce_x, y=sce_y, xrange=sce_xrange, yrange=sce_yrange, marks=as.factor(sce_mk))
     sce_ppp[[cell_id]] <- colData(object)[[cell_id]]
-
-    # References for incorporating 3d spatial point pattern
-    # https://inside.mines.edu/~jdzimmer/tutorials/Section1.html
-    # https://github.com/aproudian2/rapt/tree/master/R
 
     # Step 2 ---------------------------
     # Find nearest source (neighbor cells) of target (anchor cells) and their distance
-    source_cell <- neighbor
-    target_cell <- anchor
-    nn_pairs <- .find_nearest_neighbors(sce_ppp, source_cell, target_cell)
-    distance <- nn_pairs$distance
-    anchor_id <- colData(object)[[cell_id]][nn_pairs$target]
+    nn_pairs <- .find_k_nearest_neighbors(x=sce_ppp, anchor= anchor, neighbor=neighbor, k=k, d.limit=d.limit)
+    # Estimate the cell-cell interaction strength
+    strength_sum=tapply(nn_pair2$strength, nn_pair2$anchor, sum)
+    strength=cbind.data.frame(anchor_idx=names(strength_sum), strength=strength_sum)
+
+    strth <- strength$strength
+    anchor_id <- strength$anchor_idx
 
     # Step 3 ---------------------------
     # Subset sce object using anchor cell ids with nearest neighbor cell ids and distances.
     sce_anchor <- object[, object[[cell_id]] %in% anchor_id]
     sce_anchor <- sce_anchor[, match(anchor_id, sce_anchor[[cell_id]])]
-    colData(sce_anchor)$distance <- distance
+
+    sce_anchor <- object[, match(anchor_id, object[[cell_id]])]
+    colData(sce_anchor)$strength <- strth
     colData(sce_anchor)$anchor <- anchor
     colData(sce_anchor)$neighbor <- neighbor
 
     return(sce_anchor)
-    # Use the following if spatial point patten of cells needs to be returend.
-    #return(list(sce_an=sce_anchor, sce_ppp=sce_ppp))
+
+}
+
+
+#' Create a set of highest and lowest quantiles symmetric around median
+#'
+#'
+#' @param min_sample_per_quantile A minimum number of samples in a given quantile level.
+#' @param cell_count The number of anchor cell counts.
+#' @param max_default Default = 49. The maximum number of quantile levels to use. Default = 49 means
+#' quantile levels 0.02, 0.04, ..., 0.98 are under consideration.
+#'
+#'
+#' @return A vector of quantile levels.
+#' @export
+#'
+#'
+#' @examples
+#' data("seqFISHplus_scran_sce")
+#' cell_id = "cellID"
+#' cell_coord1 = "x"
+#' cell_coord2 = "y"
+#' cell_type = "cellClass"
+#' anchor = "Excitatory neuron"
+#' neighbor = "Astrocyte"
+#' covariate = "FOV"
+#' sce_an = create_cellpair_matrix(seqFISHplus_scran_sce, cell_id, cell_coord1, cell_coord2, cell_type, anchor, neighbor, cov=covariate)
+#' anchor_cell_count <- length(colData(sce_an)[, cell_id])
+#' dist_taus <- create_quantile_levels(min_sample_per_quantile = 5, cell_count = anchor_cell_count, max_default = 49)
+#'
+#'
+create_quantile_levels <- function(min_sample_per_quantile, cell_count, max_default=49){
+
+  max_ql <- max_default + 1
+  number_of_quantile <- ifelse(round(cell_count/min_sample_per_quantile) < max_ql,
+                               round(cell_count/min_sample_per_quantile), max_ql)
+  dist_taus <- seq(0, 1, by = 1/number_of_quantile)
+  dist_taus <- dist_taus[-c(1, length(dist_taus))]
+
+  return(dist_taus)
 }
 
 
@@ -75,39 +116,37 @@ create_cellpair_matrix <- function(x, cell_id, cell_coord1, cell_coord2, cell_ty
 #'
 #'
 #' @param x A \code{SingleCellExperiment} class.
-#' @param dist A column name of \code{colData(object)} that stores anchor-neighbor cell pair distances.
 #' @param datatype A column name of \code{assays(object)} that stores anchor cells' gene expression levels.
 #' @param cov Column names of \code{colData(object)} that needs to be adjusted as covariates.
 #' @param tau A set of highest and lowest quantiles symmetric around median.
+#' @param parallel Default=False. If parallel computing is activated.
 #' @import QRank
 #'
-#' @return A matrix of quntile regression p-values: genes (rows) by quantiles (columns).
+#' @return A matrix of quantile regression p-values in the format of genes (rows) by quantile levels (columns).
 #' @export
 #'
 #'
-test_QuadST_model <- function(x, dist, datatype, cov=NULL, tau){
+test_QuadST_model <- function(x, datatype, cov=NULL, tau, parallel=F){
 
     object <- x
     if ( !is(object, "SingleCellExperiment") )
         stop("Object must be a SingleCellExperiment class")
-    if ( !any(dist %in% colnames(colData(object))) )
-        stop("dist argument must match with a column in colData(object)")
+    if ( !any("strength" %in% colnames(colData(object))) )
+        stop("strength variable must match with a column in colData(object)")
     if ( !any(datatype %in% names(assays(object))) )
         stop("datatype argument must match with a column in colData(object)")
 
     # Step 1 ---------------------------
     # Set y: anchor-neigbhor distance, x: anchor cells'gene expression levels, and z: covariates.
-    y <- colData(object)[[dist]]
+    y <- colData(object)$strength
     x <- t(assay(object, datatype))
 
 
     # Step 2 ---------------------------
     # Remove genes with all zeros in expression values.
-    if (length(which(colSums(x) == 0)) != 0) {
-        xMatrix <- x[, -(which(colSums(x) == 0))]
-    }else{
-        xMatrix <- x
-    }
+    if (length(which(colSums(x) == 0)) != 0) {xMatrix <- x[, -(which(colSums(x) == 0))]
+    }else{xMatrix <- x}
+
     if (!is.null(cov)){
         z <- colData(object)[[cov]]
         covM <- model.matrix( ~ z)[, c(-1)]
@@ -115,78 +154,65 @@ test_QuadST_model <- function(x, dist, datatype, cov=NULL, tau){
 
     # Step 3 ---------------------------
     # Test anchor-neighbor distance-expression association at a series of quantile levels.
-    if (length(which(colSums(xMatrix==0)==0)) != 0) {
 
-      genes_wo_zeros <- colnames(xMatrix)[which(colSums(xMatrix==0)==0)]
-      genes_w_zeros <- setdiff(colnames(xMatrix), genes_wo_zeros)
+    genes_wo_zeros <- colnames(xMatrix)[which(colSums(xMatrix==0)==0)]
+    genes_w_zeros <- setdiff(colnames(xMatrix), genes_wo_zeros)
 
+    if (length(genes_wo_zeros) != 0) {
       # Test the distance-expression association for genes with no zeros in expression values.
 
+      if (parallel==F) {
+        pvalue1 <- sapply(genes_wo_zeros, function(f)
+          QRank(gene=y, snp=xMatrix[,f], cov=covM, tau=tau)$quantile.specific.pvalue) %>% t(.)
+      } else {
+        pvalue_temp <- parallel::mclapply(genes_wo_zeros, function(f)
+          QRank(gene=y, snp=xMatrix[,f], cov=covM, tau=tau)$quantile.specific.pvalue)
+        pvalue1=unlist(pvalue_temp) %>% matrix(., ncol=length(tau), byrow = T)
+        rownames(pvalue1)=genes_wo_zeros
+      }
 
-        pvalue1 <- tryCatch(sapply(genes_wo_zeros, function(f)
-          QRank(gene=y, snp=xMatrix[,f], cov=covM, tau=tau)$quantile.specific.pvalue) %>% t(.),
-          error = function(e) NULL)
-
-        # Test the distance-expression association for genes with some zeros in expression values.
-
-        pvalue2 <- sapply(genes_w_zeros, function(f)
-          tryCatch(.QRank_multi(y=y, x=cbind(xMatrix[,f], 1*I(xMatrix[,f] != 0)),
-                                cov=covM, tau=tau, alternative="two-sided-directional")$quantile.specific.pvalue,
-                   error = function(e) NULL), simplify=FALSE)
-        genes_w_zeros_re <- names(pvalue2)[!sapply(pvalue2, is.null)]
-        pvalue2_re <- as.matrix(dplyr::bind_cols(pvalue2[genes_w_zeros_re])) %>% t()
-
-        # Combine p-values for genes with no zeros and with some zeros in expression values.
-        genes_w_QRpvalue <- colnames(xMatrix)[colnames(xMatrix) %in% c(genes_wo_zeros, genes_w_zeros_re)]
-        pvalue <- rbind(pvalue1, pvalue2_re)
-        # pvalue <- rbind(pvalue1, pvalue2_re)[genes_w_QRpvalue,] # reorder genes to input
-    }else{
-        # Test distance-expression association for genes with some zeros in expression values.
-        genes_w_zeros <- colnames(xMatrix)
-        pvalue2 <- sapply(genes_w_zeros, function(f)
-          tryCatch(.QRank_multi(y=y, x=cbind(xMatrix[,f], 1*I(xMatrix[,f] != 0)),
-                                cov=covM, tau=tau,
-                                alternative="two-sided-directional")$quantile.specific.pvalue,
-                   error = function(e) NULL), simplify=FALSE)
-        genes_w_zeros_re <- names(pvalue2)[!sapply(pvalue2, is.null)]
-        pvalue2_re <- as.matrix(dplyr::bind_cols(pvalue2[genes_w_zeros_re])) %>% t()
-        pvalue <- matrix(pvalue2_re, ncol=length(tau), dimnames=list(genes_w_zeros_re, tau))
     }
+    if (length(genes_w_zeros)!=0) {
+        # Test distance-expression association for genes with some zeros in expression values.
+      if (parallel==F) {
+        pvalue2 <- sapply(genes_w_zeros, function(f) .QRank_multi(y=y, x=cbind(xMatrix[,f], 1*I(xMatrix[,f] != 0)),
+                                                                  cov=covM, tau=tau, alternative="two-sided-directional")$quantile.specific.pvalue) %>% t(.)
 
+      } else {
+        pvalue_temp <- parallel::mclapply(genes_w_zeros, function(f) .QRank_multi(y=y, x=cbind(xMatrix[,f], 1*I(xMatrix[,f] != 0)),
+                                                                  cov=covM, tau=tau, alternative="two-sided-directional")$quantile.specific.pvalue)
+        pvalue2=unlist(pvalue_temp) %>% matrix(., ncol=length(tau), byrow = T)
+        rownames(pvalue2)=genes_w_zeros
+      }
+
+    }
+    # Combine p-values for genes with no zeros and with some zeros in expression values.
+
+    pvalue <- rbind(pvalue1, pvalue2)
+    colnames(pvalue)=tau
     return(pvalue)
 }
 
 
-#' Identify cell-cell interaction changes genes (IGGs)
+#' Identify cell-cell interaction changes genes (ICGs)
 #'
 #'
-#' @param x A \code{SingleCellExperiment} class.
-#' @param y A matrix of quntile regression p-values: genes (rows) by quantiles (columns).
-#' @param dist A column name of \code{colData(object1)} that stores anchor-neighbor cell pair distances.
-#' @param datatype A column name of \code{assays(object1)} that stores anchor cells' gene expression levels.
-#' @param cov Column names of \code{colData(object1)} that need to be adjusted as covariates.
-#' @param tau A set of quantile levels at which test statistics are calculated.
-#' @param p_thres An initial p-value threshold value. Use 0.05 by default. This serves as a starting point to find a significant p-value with the empirical FDR procedure.
-#' @param fdr A norminal false discovery rate to control. Use 0.1 by default.
-#' @param ABconst A constant used in the empirical FDR procedure. Use 0.1 by default.
+#' @param pMatrix A matrix of p-values in the genes (rows) by quantile levels (columns) format.
+#' @param fdr Default= 0.1. The nominal false discovery rate to claim significance.
 #'
 #'
 #' @return a list of inference results
-#' \item{ACAT}{Combined gene-specific p-values at each lowest and highest quantile symmetrically around the median quantile using Cauchy Combination test.}
-#' \item{p_sig}{Significant p value threshold across quantile levels at a prescribed FDR threshold, e.g., 0.1.}
-#' \item{q_sig}{Logicals that indicate if there exist significant p value thresholds across quantile levels.}
-#' \item{ICGs}{Identified cell-cell interaction changed gene names.}
-#' \item{q_int}{An interaction quantile.}
-#' \item{dist_int}{An interaction distance.}
-#' \item{DA_score}{Directional association scores calculated at an interaction quantile.}
+#' \item{summary.table}{A summary of the results, including the quantile index and level of the
+#' cell-cell interaction, and the No. of ICGs significant at this quantile level.}
+#' \item{data.table}{A table of gene-level results, including gene name, p-value at the specified quantile
+#' level, the empirical FDR, and whether it's a ICG or not.}
 #' @export
 #'
 #'
 identify_ICGs <- function(pMatrix, fdr = 0.1){
 
     object <- pMatrix
-    if ( !is(object, "matrix") )
-     stop("Object must be a matrix")
+    if ( !is(object, "matrix") ) stop("Object must be a matrix")
 
     # Step 1 ---------------------------
     # Calculate combined gene-specific p-values across each highest and lowest quantiles symmetrically around
@@ -197,11 +223,6 @@ identify_ICGs <- function(pMatrix, fdr = 0.1){
     # Identify ICGs controlling empirical false discovery rate
     res <- .control_eFDR(ACATpvalue, fdr = fdr)
 
-    q_status <- res[["q_status"]]
-    sig_gene_count <- res[["sig_gene_count"]]
-    sig_gene_data <- res[["sig_gene_data"]]
-    sig_gene_id <- res[["sig_gene_id"]]
-
-    return(list(ACAT=ACATpvalue, sig_gene_count=sig_gene_count, sig_gene_data=sig_gene_data, ICGs=sig_gene_id))
+    return(res)
 
 }

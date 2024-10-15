@@ -1,42 +1,51 @@
-#' Find nearest neighbor cells and their distances from anchor cells
+#' Find k nearest neighbor cells and their distances from anchor cells
 #'
 #'
 #' @param x A point pattern object of class 'ppp'.
-#' @param source_cell A name of cell type for neighbor cells.
-#' @param target_cell A name of cell type for anchor cells.
+#' @param anchor A name of cell type for anchor cells.
+#' @param neighbor A name of cell type for neighbor cells.
+#' @param k Default = 1. Find k nearest neighbors for the anchor cell.
+#' @param d.limit Default=Inf. The limit of cell-cell distance for cell pairing. Cells over this distance limit
+#' will not be paired even though they are the k nearest neighbors.
 #' @importFrom magrittr "%>%"
-#' @return A dataframe with anchor-neighbor cell pair with distance.
+#' @return A data frame for anchor-neighbor cell pairs with their distances and interaction strengths.
 #'
 #'
 #' @noRd
 #'
 #'
-.find_nearest_neighbors <- function(x, source_cell, target_cell){
+.find_k_nearest_neighbors <- function(x, anchor, neighbor, k, d.limit){
 
     object <- x
     if ( !is(object, "ppp") )
         stop("Object must be a ppp class: representing a point pattern dataset in the two-dimensional plane.")
 
-    # Find the nearest neighbor cell (source_cell) and its distance for each anchor cell (target_cell)
-    nn <- spatstat.geom::nnwhich(object, by=as.factor(object$marks), k=1)
-    nnd <- spatstat.geom::nndist(object, by=as.factor(object$marks), k=1)
-    tcell <- which(object$marks == target_cell)
-    nn_source <- nn[tcell, source_cell]
-    nnd_source <- nnd[tcell, source_cell]
-    nn_pair <- cbind.data.frame(target=tcell, source=nn_source, distance=nnd_source) %>% dplyr::arrange(distance)
+    # Find the k nearest neighbor cell within a distance limit for each anchor cell
+    facet=as.factor(object$marks==neighbor)
+    acell <- which(object$marks == anchor)
+    nn_pair=NULL
+    for (i in 1:k) {
+      nn1 <- spatstat.geom::nnwhich(object, by=facet, k=i)[acell,2]
+      nnd1 <- spatstat.geom::nndist(object, by=facet, k=i)[acell,2]
+      nn_pair1=cbind.data.frame(anchor=object[[cell_id]][acell], neighbor=nn1, distance=nnd1, strength= 1/nnd1, k=i)
+      nn_pair=rbind(nn_pair, nn_pair1)
+    }
+    nn_pair2=nn_pair[which(nn_pair$distance < d.limit),]
 
-    return(nn_pair)
+    return(nn_pair2)
 }
 
 
 #' Calculate test statistics of the parameters in QuadST quantile regression model: Signed-QRank
 #'
 #'
-#' @param y Anchor-neighbor cell-pair distance.
-#' @param x Anchor cells' gene expression values.
+#' @param y An variable indicating anchor-neighbor interaction strength.
+#' @param x  Expression level of a gene in anchor cell type.
 #' @param cov Covariates to adjust for.
 #' @param tau A set of quantile levels at which test statistics are calculated.
-#' @param alternative By default, use "two-sided-directional".
+#' @param alternative Default ="two-sided-directional". Possible values include "two-sided-no-direction",
+#' "two-sided-directional", "greater-directional", and "less-directional", providing the flexibility on
+#' the treatment of directions and one-sided vs two-sided tests.
 #'
 #' @import QRank quantreg
 #' @return A list of Signed-QRank test results
@@ -100,42 +109,6 @@
 }
 
 
-#' Create a set of highest and lowest quantiles symmetric around median
-#'
-#'
-#' @param min_sample_per_quantile A minimum number of samples in a given quantile level.
-#' @param cell_count The number of anchor cell counts.
-#' @param max_default The maximum number of quantile levels to use by dafault.
-#'
-#'
-#' @return A vector of quantile levels.
-#' @export
-#'
-#'
-#' @examples
-#' data("seqFISHplus_scran_sce")
-#' cell_id = "cellID"
-#' cell_coord1 = "x"
-#' cell_coord2 = "y"
-#' cell_type = "cellClass"
-#' anchor = "Excitatory neuron"
-#' neighbor = "Astrocyte"
-#' covariate = "FOV"
-#' sce_an = create_cellpair_matrix(seqFISHplus_scran_sce, cell_id, cell_coord1, cell_coord2, cell_type, anchor, neighbor, cov=covariate)
-#' anchor_cell_count <- length(colData(sce_an)[, cell_id])
-#' dist_taus <- create_quantile_levels(min_sample_per_quantile = 5, cell_count = anchor_cell_count, max_default = 49)
-#'
-#'
-create_quantile_levels <- function(min_sample_per_quantile, cell_count, max_default){
-
-    max_ql <- max_default + 1
-    number_of_quantile <- ifelse(round(cell_count/min_sample_per_quantile) < max_ql,
-                                 round(cell_count/min_sample_per_quantile), max_ql)
-    dist_taus <- seq(0, 1, by = 1/number_of_quantile)
-    dist_taus <- dist_taus[-c(1, length(dist_taus))]
-
-    return(dist_taus)
-}
 
 
 #' Transform cell-specific bias adjusted counts to a normally distribution with the minimum value at zero
@@ -177,14 +150,16 @@ transform_count_to_normal <- function(x){
 }
 
 
+#' Smoothing p-values
+#'
 #' Combine gene-specific p-values at each highest and lowest quantiles symmetrically around the median quantile (0.5)
-#'  using Cauchy combination test (ACAT R package)
+#' using Cauchy combination test (ACAT R package)
 #'
 #'
 #' @param x A quantile regression p-value matrix: genes by quantiles.
 #' @import ACAT
 #'
-#' @return A Cauchy combination test p-value matrix: genes by quantiles (without the median quantile).
+#' @return A Cauchy combination of the p-value matrix: genes by quantile levels (without the median quantile).
 #'
 #'
 #' @noRd
@@ -232,7 +207,6 @@ transform_count_to_normal <- function(x){
 
 
 #' Splitting a vector into two at a certain index
-#' https://stackoverflow.com/questions/16357962/r-split-numeric-vector-at-position/16358095#16358095
 #'
 #'
 #' @param x A numeric vector
@@ -248,119 +222,71 @@ transform_count_to_normal <- function(x){
 .splitAt <- function(x, pos) unname(split(x, cumsum(seq_along(x) %in% pos)))
 
 
-#' Identify ICGs with an empirically estimated FDR p-value threshold
+#' Identify ICGs using empirical FDR.
 #'
 #'
-#' @param x A Caucy combination test p-value matrix: genes by quantiles (without the median quantile)
-#' @param pvalue_cutoff An initial p-value threshold value. Use 0.05 by default. This serves as a starting point to find a significant p-value with the empirical FDR procedure.
-#' @param ABratio_cutoff A norminal false discovery rate to control. Use 0.1 by default.
-#' @param ABconst A constant used in the empirical FDR procedure. Use 0.1 by default.
+#' @param x A smoothed p-value matrix in the format of genes by quantile levels (without the median quantile)
+#' @param fdr Default =0.1. A nominal false discovery rate to control.
 #'
 #'
 #' @return a list of results
-#' \item{ABratio}{}
-#' \item{p_cutoff}{}
-#' \item{sig_gene_count}{}
-#' \item{q_status}{}
-#' \item{sig_gene}{}
-#' \item{sig_gene_id}{}
+#' \item{summary.table}{A summary of the results, including the quantile index and level of the
+#' cell-cell interaction, and the No. of ICGs significant at this quantile level.}
+#' \item{data.table}{A table of gene-level results, including gene name, p-value at the specified quantile
+#' level, the empirical FDR, and whether it's a ICG or not.}
 #'
 #'
 #' @noRd
 #'
 #'
-.control_eFDR <- function(x, fdr = fdr){
+.control_eFDR <- function(x, fdr=0.1 ){
 
     pvalue <- x
     if ( !is(pvalue, "matrix") ) stop("Object must be a matrix")
 
     L <- ncol(pvalue)
     M <- floor(L/2)
-    eFDR =NoSig = vector("list", length = M)
+    eFDR =NoSig = NULL
     for (m in 1:M) {
-      pB=pvalue[,m] # near - ICG
-      pA=pvalue[,(L-m)] # further
+      pA=pvalue[,m] # further (little signal)
+      pB=pvalue[,(L-m+1)] # near (large signal- ICG)
       cuts=pB*1.0001
       # cuts=cuts[which(cuts<pvalue_cutoff)]
       # cuts=cuts[order(cuts)]
       nA=sapply(cuts, function(f) sum(pA<f))
       nB=sapply(cuts, function(f) sum(pB<f))
       eFDR1= (nA+0.001)/(nB+0.001)
-      
+
       o <- order(pB, decreasing = TRUE)
       ro <- order(o)
       eFDR1_clean=pmin(1, cummin(eFDR1[o]))[ro]
       names(eFDR1_clean)=names(eFDR1)
-      eFDR[[m]]=eFDR1_clean
-      NoSig[[m]]=sum(eFDR1_clean<ABratio_cutoff)
+      eFDR=cbind(eFDR, eFDR1_clean)
+      NoSig=c(NoSig, sum(eFDR1_clean<fdr))
     }
 
-    if (any(unlist(NoSig)>0)) {
-      idx_ICG=which.max(NoSig)
-      Q_taus=colnames(pvalue)[idx_ICG]
-      pB_ICG=pvalue[,idx_ICG]
-      eFDR_ICG=eFDR[[idx_ICG]]
-      sig_gene_count=sum(eFDR_ICG<fdr)
-      sig_gene_id=names(which(eFDR_ICG<fdr))
-      sig_gene_data=data.frame(Gene=sig_gene_id, pvalue=pB_ICG[which(eFDR_ICG<fdr)],
-                               eFDR=eFDR_ICG[which(eFDR_ICG<fdr)])
-      sig_gene_data=sig_gene_data[order(sig_gene_data$pvalue),]
+    if (any(NoSig>0)) {
+      m1=which.max(NoSig)
+      s.table=data.frame(idx_ICG=m1,
+                         Q_taus=colnames(pvalue)[L-m1+1],
+                         sig_gene_count=NoSig[m1])
+      d.table=data.frame(gene=rownames(pvalue), pvalue=pvalue[,s.table$Q_taus],
+                         eFDR=eFDR[,m1],
+                         ICG=1*(eFDR[,m1]<fdr))
 
     }else{
+      m1=which.min(apply(eFDR, 2, min))
+      s.table =  data.frame(idx_ICG=NA,
+                            Q_taus=colnames(pvalue)[L-m1+1],
+                            sig_gene_count=0)
 
-      Q_taus =      sig_gene_data =      sig_gene_count =      sig_gene_id = NA
+      d.table =  data.frame(gene=rownames(pvalue), pvalue=pvalue[,s.table$Q_taus],
+                            eFDR=eFDR[,m1],
+                            ICG=0)
     }
 
-    q_index <- 1:M
 
-    return(list(q_status=Q_taus, sig_gene_count=sig_gene_count,
-                sig_gene_data=sig_gene_data, sig_gene_id=sig_gene_id))
+    return(list(summary.table=s.table, data.table=d.table))
 }
 
 
-#' Calculate empirically estimated FDR (A to B ratio) between each highest and lowest quantiles symmetrically around the median.
-#'
-#'
-#'
-#' @param pvalue A Caucy combination test p-value matrix: genes by quantiles.
-#' @param pvalue A Caucy combination test p-value matrix: genes by quantiles.
-#' @param ABconst A constant used in empirically estimated FDR calculation.
-#'
-#'
-#' @return Empirically estimated FDR (A to B ratio) across quantiles
-#'
-#'
-#' @noRd
-#'
-#'
-.cal_ABratio <- function(x, p_cutoff, ABconst = 0.1){
-
-    pvalue <- x
-    if ( !is(pvalue, "matrix") )
-     stop("Object must be a matrix")
-
-    # Step 1 ---------------------------
-    # Transform Caucy combination test p-value matrix: genes by quantiles (without the median quantile)
-    # into a matrix with its element indicating p-value is lower than a pvalue cutoff (p_cutoff).
-    L <- ncol(pvalue)
-    q <- round(L/2)
-    pvalue_sig <- I(pvalue <= p_cutoff) * 1
-
-    # Step 2 ---------------------------
-    # Calculate empirically estimated FDR (A to B ratio where A and B refer to higher and lower quantiles respectively).
-    if (q == 1){
-        countA <- sum(pvalue_sig[, L:(q+1)])
-        countB <- sum(pvalue_sig[, 1:q])
-        ABratio <- (countA + ABconst)/(countB + ABconst)
-        ABratio <- is.finite(ABratio)*ABratio
-        names(ABratio) <- colnames(pvalue)[1:q]
-    }else if (q > 1){
-        countA <- colSums(pvalue_sig[, L:(q+1)])
-        countB <- colSums(pvalue_sig[, 1:q])
-        ABratio <- (countA + ABconst)/(countB + ABconst)
-        ABratio <- is.finite(ABratio)*ABratio
-        names(ABratio) <-  colnames(pvalue)[1:q]
-    }
-
-    return(ABratio)
-}

@@ -10,7 +10,7 @@ License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
 Imports: tidyverse, dplyr, magrittr, SingleCellExperiment, spatstat,
-        spatstat.geom, quantreg, QRank, rlang
+        spatstat.geom, quantreg, QRank, rlang, parallel
 Remotes: github::yaowuliu/ACAT
 RoxygenNote: 7.3.2
 NeedsCompilation: no
