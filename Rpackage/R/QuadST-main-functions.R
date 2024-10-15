@@ -12,7 +12,7 @@
 #' @param k Default = 1. Find k nearest neighbors for the anchor cell.
 #' @param d.limit Default=Inf. The limit of cell-cell distance for cell pairing. Cells over this distance limit
 #' will not be paired even though they are the k nearest neighbors.
-#'
+#' @importFrom SingleCellExperiment colData
 #'
 #' @return An anchor-neighbor integrated matrix in the \code{SingleCellExperiment} class.
 #' @export
@@ -24,7 +24,7 @@ create_integrated_matrix <- function(x, cell_id, cell_coord1, cell_coord2, cell_
     object <- x
     if ( !is(object, "SingleCellExperiment") )
         stop("Object must be a SingleCellExperiment class")
-    if ( !any(cell_id %in% colnames(SingleCellExperiment::colData(object))) )
+    if ( !any(cell_id %in% colnames(colData(object))) )
         stop("cell_id argument must match with a column in colData(object)")
     if ( !any(cell_coord1 %in% colnames(colData(object))) )
         stop("cell_coord1 argument must match with a column in colData(object)")
@@ -32,9 +32,9 @@ create_integrated_matrix <- function(x, cell_id, cell_coord1, cell_coord2, cell_
         stop("cell_coord2 argument must match with a column in colData(object)")
     if ( !any(cell_type %in% colnames(colData(object))) )
         stop("cell_type argument must match with a column in colData(object)")
-    if ( !any(anchor %in% unique(SingleCellExperiment::colData(object)[[cell_type]])) )
+    if ( !any(anchor %in% unique(colData(object)[[cell_type]])) )
         stop("anchor argument must match with an annotated cell type")
-    if ( !any(neighbor %in% unique(SingleCellExperiment::colData(object)[[cell_type]])) )
+    if ( !any(neighbor %in% unique(colData(object)[[cell_type]])) )
         stop("neighbor argument must match with an annotated cell type")
 
     # Step 1 ---------------------------
@@ -51,21 +51,19 @@ create_integrated_matrix <- function(x, cell_id, cell_coord1, cell_coord2, cell_
     # Find nearest source (neighbor cells) of target (anchor cells) and their distance
     nn_pairs <- .find_k_nearest_neighbors(x=sce_ppp, anchor= anchor, neighbor=neighbor, k=k, d.limit=d.limit)
     # Estimate the cell-cell interaction strength
-    strength_sum=tapply(nn_pair2$strength, nn_pair2$anchor, sum)
-    strength=cbind.data.frame(anchor_idx=names(strength_sum), strength=strength_sum)
+    strength_sum=tapply(nn_pairs$strength, nn_pairs$anchor, sum)
+    strength_k=tapply(nn_pairs$k, nn_pairs$anchor, length)
+    strength=cbind.data.frame(anchor_idx=names(strength_sum), strength=strength_sum, k=strength_k)
 
-    strth <- strength$strength
-    anchor_id <- strength$anchor_idx
+
 
     # Step 3 ---------------------------
     # Subset sce object using anchor cell ids with nearest neighbor cell ids and distances.
-    sce_anchor <- object[, object[[cell_id]] %in% anchor_id]
-    sce_anchor <- sce_anchor[, match(anchor_id, sce_anchor[[cell_id]])]
-
+    anchor_id <- strength$anchor_idx
     sce_anchor <- object[, match(anchor_id, object[[cell_id]])]
-    colData(sce_anchor)$strength <- strth
-    colData(sce_anchor)$anchor <- anchor
-    colData(sce_anchor)$neighbor <- neighbor
+    colData(sce_anchor)[["strength"]] <- strength$strength
+    colData(sce_anchor)[["anchor"]] <- anchor
+    colData(sce_anchor)[["neighbor"]] <- neighbor
 
     return(sce_anchor)
 
@@ -157,7 +155,7 @@ test_QuadST_model <- function(x, datatype, cov=NULL, tau, parallel=F){
 
     genes_wo_zeros <- colnames(xMatrix)[which(colSums(xMatrix==0)==0)]
     genes_w_zeros <- setdiff(colnames(xMatrix), genes_wo_zeros)
-
+    pvalue=NULL
     if (length(genes_wo_zeros) != 0) {
       # Test the distance-expression association for genes with no zeros in expression values.
 
@@ -170,6 +168,7 @@ test_QuadST_model <- function(x, datatype, cov=NULL, tau, parallel=F){
         pvalue1=unlist(pvalue_temp) %>% matrix(., ncol=length(tau), byrow = T)
         rownames(pvalue1)=genes_wo_zeros
       }
+      pvalue=rbind(pvalue, pvalue1)
 
     }
     if (length(genes_w_zeros)!=0) {
@@ -184,11 +183,10 @@ test_QuadST_model <- function(x, datatype, cov=NULL, tau, parallel=F){
         pvalue2=unlist(pvalue_temp) %>% matrix(., ncol=length(tau), byrow = T)
         rownames(pvalue2)=genes_w_zeros
       }
+      pvalue=rbind(pvalue, pvalue2)
 
     }
     # Combine p-values for genes with no zeros and with some zeros in expression values.
-
-    pvalue <- rbind(pvalue1, pvalue2)
     colnames(pvalue)=tau
     return(pvalue)
 }
@@ -224,5 +222,29 @@ identify_ICGs <- function(pMatrix, fdr = 0.1){
     res <- .control_eFDR(ACATpvalue, fdr = fdr)
 
     return(res)
+
+}
+
+#' Identify cell-cell interaction distance
+#'
+#'
+#' @param x A \code{SingleCellExperiment} class.
+#' @param ICG.summary ICG summary.
+#'@param k K nearest neighbor.
+#'
+#' @return Interacting distance.
+#' @export
+#'
+#'
+ICG_distance <- function(x, ICG.summary, k) {
+  object <- x
+  if ( !is(object, "SingleCellExperiment") ) stop("Object must be a SingleCellExperiment class")
+  if (k>1)  stop("Distance can only be identified if 1 nearest neighor is used")
+
+  # Step 1 ---------------------------
+  # Set y: anchor-neigbhor distance, x: anchor cells'gene expression levels, and z: covariates.
+  y <- object$strength
+  dist=1/quantile(y, probs=as.numeric(ICG.summary$Q_taus))
+  return(dist)
 
 }
