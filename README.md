@@ -11,30 +11,9 @@ devtools:
 ``` r
 if (!require("devtools", quietly = TRUE)) install.packages("devtools")
 if (!require("BiocManager", quietly = TRUE)) install.packages("BiocManager")
-```
-
-    ## 
-    ## Attaching package: 'BiocManager'
-
-    ## The following object is masked from 'package:devtools':
-    ## 
-    ##     install
-
-``` r
-BiocManager::install("SingleCellExperiment")
-```
-
-    ## Bioconductor version 3.19 (BiocManager 1.30.25), R 4.4.1 (2024-06-14)
-
-    ## Warning: package(s) not installed when version(s) same as or greater than current; use
-    ##   `force = TRUE` to re-install: 'SingleCellExperiment'
-
-``` r
+if (!require("SingleCellExperiment", quietly = TRUE)) BiocManager::install("SingleCellExperiment")
 devtools::install_github("songxiaoyu/QuadST/Rpackage")
 ```
-
-    ## Skipping install of 'QuadST' from a github remote, the SHA1 (b8d353b2) has not changed since last install.
-    ##   Use `force = TRUE` to force installation
 
 ## Example of use
 
@@ -47,7 +26,7 @@ library(QuadST)
 
 ### QuadST analysis pipeline
 
-Step 1: Create an anchor-neighbor integrated matrix.
+Step 0: Specify data and parameters
 
 ``` r
 data("seqFISHplus_scran_sce")
@@ -57,99 +36,16 @@ cell_coord2 = "y"
 cell_type = "cellClass"
 anchor = "Excitatory neuron"
 neighbor = "Excitatory neuron"
-covariate = "FOV"
-
-sce_an <- create_cellpair_matrix(seqFISHplus_scran_sce, cell_id, cell_coord1, cell_coord2, cell_type, anchor, neighbor, cov=covariate)
+datatype <- "normcounts"
+covariate <- "FOV"
+k=1
+d.limit=Inf
 ```
 
-    ## Loading required package: SingleCellExperiment
-
-    ## Loading required package: SummarizedExperiment
-
-    ## Loading required package: MatrixGenerics
-
-    ## Loading required package: matrixStats
-
-    ## 
-    ## Attaching package: 'MatrixGenerics'
-
-    ## The following objects are masked from 'package:matrixStats':
-    ## 
-    ##     colAlls, colAnyNAs, colAnys, colAvgsPerRowSet, colCollapse,
-    ##     colCounts, colCummaxs, colCummins, colCumprods, colCumsums,
-    ##     colDiffs, colIQRDiffs, colIQRs, colLogSumExps, colMadDiffs,
-    ##     colMads, colMaxs, colMeans2, colMedians, colMins, colOrderStats,
-    ##     colProds, colQuantiles, colRanges, colRanks, colSdDiffs, colSds,
-    ##     colSums2, colTabulates, colVarDiffs, colVars, colWeightedMads,
-    ##     colWeightedMeans, colWeightedMedians, colWeightedSds,
-    ##     colWeightedVars, rowAlls, rowAnyNAs, rowAnys, rowAvgsPerColSet,
-    ##     rowCollapse, rowCounts, rowCummaxs, rowCummins, rowCumprods,
-    ##     rowCumsums, rowDiffs, rowIQRDiffs, rowIQRs, rowLogSumExps,
-    ##     rowMadDiffs, rowMads, rowMaxs, rowMeans2, rowMedians, rowMins,
-    ##     rowOrderStats, rowProds, rowQuantiles, rowRanges, rowRanks,
-    ##     rowSdDiffs, rowSds, rowSums2, rowTabulates, rowVarDiffs, rowVars,
-    ##     rowWeightedMads, rowWeightedMeans, rowWeightedMedians,
-    ##     rowWeightedSds, rowWeightedVars
-
-    ## Loading required package: GenomicRanges
-
-    ## Loading required package: stats4
-
-    ## Loading required package: BiocGenerics
-
-    ## 
-    ## Attaching package: 'BiocGenerics'
-
-    ## The following objects are masked from 'package:stats':
-    ## 
-    ##     IQR, mad, sd, var, xtabs
-
-    ## The following objects are masked from 'package:base':
-    ## 
-    ##     anyDuplicated, aperm, append, as.data.frame, basename, cbind,
-    ##     colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,
-    ##     get, grep, grepl, intersect, is.unsorted, lapply, Map, mapply,
-    ##     match, mget, order, paste, pmax, pmax.int, pmin, pmin.int,
-    ##     Position, rank, rbind, Reduce, rownames, sapply, setdiff, table,
-    ##     tapply, union, unique, unsplit, which.max, which.min
-
-    ## Loading required package: S4Vectors
-
-    ## 
-    ## Attaching package: 'S4Vectors'
-
-    ## The following object is masked from 'package:utils':
-    ## 
-    ##     findMatches
-
-    ## The following objects are masked from 'package:base':
-    ## 
-    ##     expand.grid, I, unname
-
-    ## Loading required package: IRanges
-
-    ## Loading required package: GenomeInfoDb
-
-    ## Loading required package: Biobase
-
-    ## Welcome to Bioconductor
-    ## 
-    ##     Vignettes contain introductory material; view with
-    ##     'browseVignettes()'. To cite Bioconductor, see
-    ##     'citation("Biobase")', and for packages 'citation("pkgname")'.
-
-    ## 
-    ## Attaching package: 'Biobase'
-
-    ## The following object is masked from 'package:MatrixGenerics':
-    ## 
-    ##     rowMedians
-
-    ## The following objects are masked from 'package:matrixStats':
-    ## 
-    ##     anyMissing, rowMedians
+Step 1: Create an anchor-neighbor integrated matrix.
 
 ``` r
+sce_an <- create_integrated_matrix(seqFISHplus_scran_sce, cell_id, cell_coord1, cell_coord2, cell_type, anchor, neighbor, k=k, d.limit = d.limit)
 sce_an
 ```
 
@@ -157,8 +53,8 @@ Step 2: Model and test distance-expression association
 
 ``` r
 # A. Determine the number of quantile levels, e.g., to ensure that there are at least 5 samples in each quantile level.
-anchor_cell_count <- length(colData(sce_an)[, cell_id])
-dist_taus <- create_quantile_levels(min_sample_per_quantile = 5, cell_count = anchor_cell_count, max_default = 49)
+
+dist_taus <- create_quantile_levels(min_sample_per_quantile = 5, cell_count = dim(sce_an)[2], max_default = 49)
 
 # B. Subset genes to analyze, e.g., top 25% highly expressed genes.
 xm <- apply(t(assay(sce_an, "adjusted.counts")), 2, mean)
@@ -167,17 +63,15 @@ gene_to_keep <- names(xm)[xm > xmq]
 sce_an_sub <- sce_an[gene_to_keep,]
 
 # C. Transform cell-specific bias adjusted counts to normally distributed values.
-assay(sce_an_sub, "normalized_counts") <- transform_count_to_normal(assay(sce_an_sub, "adjusted.counts"))
+assay(sce_an_sub, "normcounts") <- transform_count_to_normal(assay(sce_an_sub, "adjusted.counts"))
 
 # D. Provide the colunm names of sce_an_sub that correspond to distance, expression values, and covariates to be used for analysis.
-dist <- "distance"
-expr <- "normalized_counts"
-covariate <- "FOV"
-QRpvalue <- test_QuadST_model(sce_an_sub, dist, expr, cov = covariate, tau = dist_taus)
+
+QRpvalue <- test_QuadST_model(x=sce_an_sub, datatype=datatype,cov = covariate, tau = dist_taus, parallel=T)
 str(QRpvalue)
 ```
 
-    ##  num [1:2500, 1:49] 0.0983 0.5507 0.5376 0.1763 0.0205 ...
+    ##  num [1:2500, 1:49] 0.78 0.675 0.969 0.789 0.725 ...
     ##  - attr(*, "dimnames")=List of 2
     ##   ..$ : chr [1:2500] "Aatf" "Abat" "Abhd2" "Abhd6" ...
     ##   ..$ : chr [1:49] "0.02" "0.04" "0.06" "0.08" ...
@@ -185,25 +79,31 @@ str(QRpvalue)
 Step 3: Identify ICGs.
 
 ``` r
-res <- identify_ICGs(sce_an_sub, QRpvalue, dist, expr, cov = covariate, tau = dist_taus, p_thres = 0.05, fdr = 0.1, ABconst = 0.1)
+res <- identify_ICGs(pMatrix=QRpvalue, fdr = 0.1)
 
 # A. Check ICGs
-str(res$ICGs)
+res$summary.table
 ```
 
-    ##  chr [1:303] "Adap1" "Afg3l2" "Ago2" "Aldh2" "Ap2a1" "Apba1" "Arl4d" ...
+    ##   idx_ICG Q_taus sig_gene_count
+    ## 1       6   0.88            296
+
+``` r
+res$data.table[1:5,] 
+```
+
+    ##        gene     pvalue      eFDR ICG
+    ## Aatf   Aatf 0.11230273 0.3349762   0
+    ## Abat   Abat 0.22049735 0.4651381   0
+    ## Abhd2 Abhd2 0.55438487 0.6976465   0
+    ## Abhd6 Abhd6 0.09536937 0.3114332   0
+    ## Abl1   Abl1 0.66343834 0.7600874   0
 
 ``` r
 # B. Interaction quantile and distance
-str(res$q_int)
+distance=ICG_distance(x=sce_an, ICG.summary=res$summary.table, k=k) 
+distance
 ```
 
-    ##  Named int 6
-    ##  - attr(*, "names")= chr "0.12"
-
-``` r
-str(res$dist_int)
-```
-
-    ##  Named num 81.4
-    ##  - attr(*, "names")= chr "12%"
+    ##      88% 
+    ## 81.40098

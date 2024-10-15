@@ -1,6 +1,7 @@
 ---
 output: github_document
 ---
+
 # `QuadST: A Powerful and Robust Approach for Identifying Cell–Cell Interaction-Changed Genes on Spatially Resolved Transcriptomics`
 
 A full description of the method can be found at XXX
@@ -8,15 +9,15 @@ A full description of the method can be found at XXX
 ## Installation
 
 With R, users can install the QuadST package directly from GitHub with devtools:
-```{r, results = 'hide'}
+
+```{r echo=T, results = 'hide',message=FALSE, warning=FALSE}
 if (!require("devtools", quietly = TRUE)) install.packages("devtools")
 if (!require("BiocManager", quietly = TRUE)) install.packages("BiocManager")
-BiocManager::install("SingleCellExperiment")
+if (!require("SingleCellExperiment", quietly = TRUE)) BiocManager::install("SingleCellExperiment")
 devtools::install_github("songxiaoyu/QuadST/Rpackage")
 ```
 
 ## Example of use
-
 
 Below demonstrates the QuadST analysis pipeline for a single cell type pair. Multiple cell type pairs can be analyzed in parallel.
 
@@ -25,7 +26,9 @@ library(QuadST)
 ```
 
 ### QuadST analysis pipeline
-Step 1: Create an anchor-neighbor integrated matrix.
+
+Step 0: Specify data and parameters
+
 ```{r results = 'hide'}
 data("seqFISHplus_scran_sce")
 cell_id = "cellID"
@@ -34,17 +37,26 @@ cell_coord2 = "y"
 cell_type = "cellClass"
 anchor = "Excitatory neuron"
 neighbor = "Excitatory neuron"
-covariate = "FOV"
+datatype <- "normcounts"
+covariate <- "FOV"
+k=1
+d.limit=Inf
+```
 
-sce_an <- create_cellpair_matrix(seqFISHplus_scran_sce, cell_id, cell_coord1, cell_coord2, cell_type, anchor, neighbor, cov=covariate)
+Step 1: Create an anchor-neighbor integrated matrix.
+
+```{r results = 'hide'}
+
+sce_an <- create_integrated_matrix(seqFISHplus_scran_sce, cell_id, cell_coord1, cell_coord2, cell_type, anchor, neighbor, k=k, d.limit = d.limit)
 sce_an
 ```
 
 Step 2: Model and test distance-expression association
+
 ```{r}
 # A. Determine the number of quantile levels, e.g., to ensure that there are at least 5 samples in each quantile level.
-anchor_cell_count <- length(colData(sce_an)[, cell_id])
-dist_taus <- create_quantile_levels(min_sample_per_quantile = 5, cell_count = anchor_cell_count, max_default = 49)
+
+dist_taus <- create_quantile_levels(min_sample_per_quantile = 5, cell_count = dim(sce_an)[2], max_default = 49)
 
 # B. Subset genes to analyze, e.g., top 25% highly expressed genes.
 xm <- apply(t(assay(sce_an, "adjusted.counts")), 2, mean)
@@ -53,24 +65,29 @@ gene_to_keep <- names(xm)[xm > xmq]
 sce_an_sub <- sce_an[gene_to_keep,]
 
 # C. Transform cell-specific bias adjusted counts to normally distributed values.
-assay(sce_an_sub, "normalized_counts") <- transform_count_to_normal(assay(sce_an_sub, "adjusted.counts"))
+assay(sce_an_sub, "normcounts") <- transform_count_to_normal(assay(sce_an_sub, "adjusted.counts"))
 
 # D. Provide the colunm names of sce_an_sub that correspond to distance, expression values, and covariates to be used for analysis.
-dist <- "distance"
-expr <- "normalized_counts"
-covariate <- "FOV"
-QRpvalue <- test_QuadST_model(sce_an_sub, dist, expr, cov = covariate, tau = dist_taus)
+
+QRpvalue <- test_QuadST_model(x=sce_an_sub, datatype=datatype,cov = covariate, tau = dist_taus, parallel=T)
 str(QRpvalue)
+
+
+
 ```
 
 Step 3: Identify ICGs.
+
 ```{r}
-res <- identify_ICGs(sce_an_sub, QRpvalue, dist, expr, cov = covariate, tau = dist_taus, p_thres = 0.05, fdr = 0.1, ABconst = 0.1)
+res <- identify_ICGs(pMatrix=QRpvalue, fdr = 0.1)
 
 # A. Check ICGs
-str(res$ICGs)
+res$summary.table
+res$data.table[1:5,] 
+
 
 # B. Interaction quantile and distance
-str(res$q_int)
-str(res$dist_int)
+distance=ICG_distance(x=sce_an, ICG.summary=res$summary.table, k=k) 
+distance
+
 ```
