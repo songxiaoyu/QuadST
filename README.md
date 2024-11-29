@@ -15,41 +15,60 @@ if (!require("SingleCellExperiment", quietly = TRUE)) BiocManager::install("Sing
 devtools::install_github("songxiaoyu/QuadST/Rpackage")
 ```
 
-## Example of use
-
-Below demonstrates the QuadST analysis pipeline for a single cell type
-pair. Multiple cell type pairs can be analyzed in parallel.
+## Example of using QuadST analysis pipeline
 
 ``` r
 library(QuadST)
 ```
 
-### QuadST analysis pipeline
+### Load a public data set
 
-Step 0: Specify data and parameters
+Our example data was published by Eng, Chee-Huat Linus, et al 2019
+(<https://www.nature.com/articles/s41586-019-1049-y>). You can
+downloaded it directly in our folder Data_2019_seqfish_plus_SScortex or
+using this link
+(<https://github.com/songxiaoyu/QuadST/tree/main/Data_2019_seqfish_plus_SScortex>).
+
+The data preprocessing step can be found in XXX.R, which uses three
+inputs: (1) gene \* cell count matrix for expression, (2) cell spatial
+coordinates, (3) cell features (e.g. cell type, FOV). The output is a
+“SingleCellExperiment” object called seqFISHplus_scran_sce for QuadST
+analysis. Here we directly load seqFISHplus_scran_sce to demonstrate
+QuadST.
 
 ``` r
 data("seqFISHplus_scran_sce")
-cell_id = "cellID"
-cell_coord1 = "x"
-cell_coord2 = "y"
-cell_type = "cellClass"
-anchor = "Excitatory neuron"
-neighbor = "Excitatory neuron"
-datatype <- "normcounts"
-covariate <- "FOV"
-k=1
-d.limit=Inf
 ```
 
-Step 1: Create an anchor-neighbor integrated matrix.
+#### Step 1: Specify data and parameters
+
+Below demonstrates the QuadST analysis pipeline for an anchor-neighbor
+single cell type pair (Excitatory neuron - Excitatory neuron). Multiple
+cell type pairs can be analyzed in parallel.
 
 ``` r
-sce_an <- create_integrated_matrix(seqFISHplus_scran_sce, cell_id, cell_coord1, cell_coord2, cell_type, anchor, neighbor, k=k, d.limit = d.limit)
+data("seqFISHplus_scran_sce") # load a "SingleCellExperiment" object
+cell_id = "cellID"  # variable name for cell index
+cell_coord1 = "x" # variable name of spatial coordinate x
+cell_coord2 = "y" # variable name of spatial coordinate x
+cell_type = "cellClass" # variable name for cell type
+anchor = "Excitatory neuron" # anchor cell type
+neighbor = "Excitatory neuron" # neighbor cell type, which can be the same as anchor or different. 
+datatype <- "normcounts" # data types used for QuadST analysis 
+covariate <- "FOV" # covariates to adjust for 
+k=1 # No. of nearest neighbors. 
+d.limit=Inf # the limit of distance for cell pairing. 
+```
+
+#### Step 2: Create an anchor-neighbor integrated matrix.
+
+``` r
+sce_an <- create_integrated_matrix(seqFISHplus_scran_sce, cell_id, cell_coord1, 
+                                   cell_coord2, cell_type, anchor, neighbor, k=k, d.limit = d.limit)
 sce_an
 ```
 
-Step 2: Model and test distance-expression association
+#### Step 3: Model and test distance-expression association
 
 ``` r
 # A. Determine the number of quantile levels, e.g., to ensure that there are at least 5 samples in each quantile level.
@@ -76,7 +95,7 @@ str(QRpvalue)
     ##   ..$ : chr [1:2500] "Aatf" "Abat" "Abhd2" "Abhd6" ...
     ##   ..$ : chr [1:49] "0.02" "0.04" "0.06" "0.08" ...
 
-Step 3: Identify ICGs.
+#### Step 4: Identify CCIs/ICGs.
 
 ``` r
 res <- identify_ICGs(pMatrix=QRpvalue, fdr = 0.1)
