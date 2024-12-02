@@ -53,7 +53,7 @@ d.limit=Inf # the limit of distance for cell pairing.
 
 #### Step 2: Create an anchor-neighbor integrated matrix.
 
-```{r results = 'hide'}
+```{r}
 
 sce_an <- create_integrated_matrix(seqFISHplus_scran_sce, cell_id, cell_coord1, 
                                    cell_coord2, cell_type, anchor, neighbor, k=k, d.limit = d.limit)

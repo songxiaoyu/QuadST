@@ -68,6 +68,18 @@ sce_an <- create_integrated_matrix(seqFISHplus_scran_sce, cell_id, cell_coord1,
 sce_an
 ```
 
+    ## class: SingleCellExperiment 
+    ## dim: 10000 325 
+    ## metadata(0):
+    ## assays(3): counts logcounts adjusted.counts
+    ## rownames(10000): 1700022a21rik 1700025g04rik ... Opn1sw Pramef12
+    ## rowData names(1): geneID
+    ## colnames(325): cell_1 cell_10 ... cell_98 cell_99
+    ## colData names(9): cellID cellClass ... anchor neighbor
+    ## reducedDimNames(0):
+    ## mainExpName: NULL
+    ## altExpNames(0):
+
 #### Step 3: Model and test distance-expression association
 
 ``` r
@@ -90,7 +102,7 @@ QRpvalue <- test_QuadST_model(x=sce_an_sub, datatype=datatype,cov = covariate, t
 str(QRpvalue)
 ```
 
-    ##  num [1:2500, 1:49] 0.78 0.675 0.969 0.789 0.725 ...
+    ##  num [1:2500, 1:49] 0.0983 0.2473 0.4327 0.1763 0.0992 ...
     ##  - attr(*, "dimnames")=List of 2
     ##   ..$ : chr [1:2500] "Aatf" "Abat" "Abhd2" "Abhd6" ...
     ##   ..$ : chr [1:49] "0.02" "0.04" "0.06" "0.08" ...
@@ -105,18 +117,18 @@ res$summary.table
 ```
 
     ##   idx_ICG Q_taus sig_gene_count
-    ## 1       6   0.88            296
+    ## 1       6   0.12            306
 
 ``` r
 res$data.table[1:5,] 
 ```
 
     ##        gene     pvalue      eFDR ICG
-    ## Aatf   Aatf 0.11230273 0.3349762   0
-    ## Abat   Abat 0.22049735 0.4651381   0
-    ## Abhd2 Abhd2 0.55438487 0.6976465   0
-    ## Abhd6 Abhd6 0.09536937 0.3114332   0
-    ## Abl1   Abl1 0.66343834 0.7600874   0
+    ## Aatf   Aatf 0.10584407 0.3231716   0
+    ## Abat   Abat 0.22049735 0.4625917   0
+    ## Abhd2 Abhd2 0.94198755 0.9647010   0
+    ## Abhd6 Abhd6 0.09242494 0.3015882   0
+    ## Abl1   Abl1 0.66343834 0.7625822   0
 
 ``` r
 # B. Interaction quantile and distance
@@ -124,5 +136,5 @@ distance=ICG_distance(x=sce_an, ICG.summary=res$summary.table, k=k)
 distance
 ```
 
-    ##      88% 
+    ##      12% 
     ## 81.40098
