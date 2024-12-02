@@ -44,24 +44,30 @@ create_integrated_matrix <- function(x, cell_id, cell_coord1, cell_coord2, cell_
     sce_y <- colData(object)[[cell_coord2]]
     sce_xrange <- c(min(sce_x) - 1, max(sce_x) + 1)
     sce_yrange <- c(min(sce_y) - 1, max(sce_y) + 1)
-    sce_ppp <- spatstat.geom::ppp(x=sce_x, y=sce_y, xrange=sce_xrange, yrange=sce_yrange, marks=as.factor(sce_mk))
+    sce_ppp <- spatstat.geom::ppp(x=sce_x, y=sce_y, xrange=sce_xrange,
+                                  yrange=sce_yrange, marks=as.factor(sce_mk))
     sce_ppp[[cell_id]] <- colData(object)[[cell_id]]
 
     # Step 2 ---------------------------
     # Find nearest source (neighbor cells) of target (anchor cells) and their distance
-    nn_pairs <- .find_k_nearest_neighbors(x=sce_ppp, anchor= anchor, neighbor=neighbor, k=k, d.limit=d.limit)
-    # Estimate the cell-cell interaction strength
-    strength_sum=tapply(nn_pairs$strength, nn_pairs$anchor, sum)
+    nn_pairs <- .find_k_nearest_neighbors(x=sce_ppp, anchor= anchor,
+                                          neighbor=neighbor, k=k, d.limit=d.limit)
+    # Estimate the cell-cell interaction weighted distance
+    strength=1/nn_pairs$distance
+    strength_sum=tapply(strength, nn_pairs$anchor, sum)
+    w_distance=1/strength_sum
     strength_k=tapply(nn_pairs$k, nn_pairs$anchor, length)
-    strength=cbind.data.frame(anchor_idx=names(strength_sum), strength=strength_sum, k=strength_k)
+    w_distance=cbind.data.frame(anchor_idx=names(strength_sum),
+                              w_distance=w_distance,
+                              k=strength_k)
 
 
 
     # Step 3 ---------------------------
     # Subset sce object using anchor cell ids with nearest neighbor cell ids and distances.
-    anchor_id <- strength$anchor_idx
+    anchor_id <- w_distance$anchor_idx
     sce_anchor <- object[, match(anchor_id, object[[cell_id]])]
-    colData(sce_anchor)[["strength"]] <- strength$strength
+    colData(sce_anchor)[["w_distance"]] <- w_distance$w_distance
     colData(sce_anchor)[["anchor"]] <- anchor
     colData(sce_anchor)[["neighbor"]] <- neighbor
 
@@ -129,14 +135,14 @@ test_QuadST_model <- function(x, datatype, cov=NULL, tau, parallel=F){
     object <- x
     if ( !is(object, "SingleCellExperiment") )
         stop("Object must be a SingleCellExperiment class")
-    if ( !any("strength" %in% colnames(colData(object))) )
-        stop("strength variable must match with a column in colData(object)")
+    if ( !any("w_distance" %in% colnames(colData(object))) )
+        stop("w_distance variable must match with a column in colData(object)")
     if ( !any(datatype %in% names(assays(object))) )
         stop("datatype argument must match with a column in colData(object)")
 
     # Step 1 ---------------------------
     # Set y: anchor-neigbhor distance, x: anchor cells'gene expression levels, and z: covariates.
-    y <- colData(object)$strength
+    y <- colData(object)$w_distance
     x <- t(assay(object, datatype))
 
 
@@ -243,8 +249,8 @@ ICG_distance <- function(x, ICG.summary, k) {
 
   # Step 1 ---------------------------
   # Set y: anchor-neigbhor distance, x: anchor cells'gene expression levels, and z: covariates.
-  y <- object$strength
-  dist=1/quantile(y, probs=as.numeric(ICG.summary$Q_taus))
+  y <- object$w_distance
+  dist=quantile(y, probs=as.numeric(ICG.summary$Q_taus))
   return(dist)
 
 }

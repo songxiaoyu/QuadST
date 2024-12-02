@@ -27,7 +27,8 @@
     for (i in 1:k) {
       nn1 <- spatstat.geom::nnwhich(object, by=facet, k=i)[acell,2]
       nnd1 <- spatstat.geom::nndist(object, by=facet, k=i)[acell,2]
-      nn_pair1=cbind.data.frame(anchor=object[[cell_id]][acell], neighbor=nn1, distance=nnd1, strength= 1/nnd1, k=i)
+      nn_pair1=cbind.data.frame(anchor=object[[cell_id]][acell], neighbor=nn1,
+                                distance=nnd1, k=i)
       nn_pair=rbind(nn_pair, nn_pair1)
     }
     nn_pair2=nn_pair[which(nn_pair$distance < d.limit),]
@@ -248,8 +249,9 @@ transform_count_to_normal <- function(x){
     M <- floor(L/2)
     eFDR =NoSig = NULL
     for (m in 1:M) {
-      pA=pvalue[,m] # further (little signal)
-      pB=pvalue[,(L-m+1)] # near (large signal- ICG)
+      pB=pvalue[,m] # near (large signal- ICG)
+      pA=pvalue[,(L-m+1) ] # further (little signal)
+
       cuts=pB*1.0001
       # cuts=cuts[which(cuts<pvalue_cutoff)]
       # cuts=cuts[order(cuts)]
@@ -268,19 +270,21 @@ transform_count_to_normal <- function(x){
     if (any(NoSig>0)) {
       m1=which.max(NoSig)
       s.table=data.frame(idx_ICG=m1,
-                         Q_taus=colnames(pvalue)[L-m1+1],
+                         Q_taus=colnames(pvalue)[m1],
                          sig_gene_count=NoSig[m1])
-      d.table=data.frame(gene=rownames(pvalue), pvalue=pvalue[,s.table$Q_taus],
+      d.table=data.frame(gene=rownames(pvalue),
+                         pvalue=pvalue[,s.table$Q_taus],
                          eFDR=eFDR[,m1],
                          ICG=1*(eFDR[,m1]<fdr))
 
     }else{
       m1=which.min(apply(eFDR, 2, min))
       s.table =  data.frame(idx_ICG=NA,
-                            Q_taus=colnames(pvalue)[L-m1+1],
+                            Q_taus=colnames(pvalue)[m1],
                             sig_gene_count=0)
 
-      d.table =  data.frame(gene=rownames(pvalue), pvalue=pvalue[,s.table$Q_taus],
+      d.table =  data.frame(gene=rownames(pvalue),
+                            pvalue=pvalue[,s.table$Q_taus],
                             eFDR=eFDR[,m1],
                             ICG=0)
     }
