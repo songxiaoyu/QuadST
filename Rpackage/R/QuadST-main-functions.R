@@ -57,7 +57,7 @@ create_integrated_matrix <- function(x, cell_id, cell_coord1, cell_coord2, cell_
     strength_mean=tapply(strength, nn_pairs$anchor, mean)
     w_distance=1/strength_mean
     strength_k=tapply(nn_pairs$k, nn_pairs$anchor, length)
-    w_distance=cbind.data.frame(anchor_idx=names(strength_sum),
+    w_distance=cbind.data.frame(anchor_idx=names(strength_mean),
                               w_distance=w_distance,
                               k=strength_k)
 
