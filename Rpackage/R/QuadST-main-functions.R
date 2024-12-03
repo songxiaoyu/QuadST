@@ -54,8 +54,8 @@ create_integrated_matrix <- function(x, cell_id, cell_coord1, cell_coord2, cell_
                                           neighbor=neighbor, k=k, d.limit=d.limit)
     # Estimate the cell-cell interaction weighted distance
     strength=1/nn_pairs$distance
-    strength_sum=tapply(strength, nn_pairs$anchor, sum)
-    w_distance=1/strength_sum
+    strength_mean=tapply(strength, nn_pairs$anchor, mean)
+    w_distance=1/strength_mean
     strength_k=tapply(nn_pairs$k, nn_pairs$anchor, length)
     w_distance=cbind.data.frame(anchor_idx=names(strength_sum),
                               w_distance=w_distance,
@@ -141,7 +141,7 @@ test_QuadST_model <- function(x, datatype, cov=NULL, tau, parallel=F){
         stop("datatype argument must match with a column in colData(object)")
 
     # Step 1 ---------------------------
-    # Set y: anchor-neigbhor distance, x: anchor cells'gene expression levels, and z: covariates.
+    # Set y: anchor-neighbor distance, x: anchor cells' gene expression levels, and z: covariates.
     y <- colData(object)$w_distance
     x <- t(assay(object, datatype))
 
