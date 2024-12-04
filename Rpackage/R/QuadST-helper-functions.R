@@ -257,12 +257,17 @@ transform_count_to_normal <- function(x){
       # cuts=cuts[order(cuts)]
       nA=sapply(cuts, function(f) sum(pA<f))
       nB=sapply(cuts, function(f) sum(pB<f))
-      eFDR1= (nA+0.001)/(nB+0.001)
+      eFDR1= (nA+0.1)/(nB+0.1)
 
-      o <- order(pB, decreasing = TRUE)
+
+      o <- order(pB, decreasing = F)
+      eFDR1_reorder=eFDR1[order(eFDR1)]
       ro <- order(o)
-      eFDR1_clean=pmin(1, cummin(eFDR1[o]))[ro]
+      eFDR1_clean=pmin(1, eFDR1_reorder)[ro]
       names(eFDR1_clean)=names(eFDR1)
+
+      # temp=cbind(cuts, nA, nB, eFDR1, eFDR1_clean)
+
       eFDR=cbind(eFDR, eFDR1_clean)
       NoSig=c(NoSig, sum(eFDR1_clean<fdr))
     }

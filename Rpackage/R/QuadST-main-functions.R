@@ -225,7 +225,7 @@ identify_ICGs <- function(pMatrix, fdr = 0.1){
 
     # Step 2 ---------------------------
     # Identify ICGs controlling empirical false discovery rate
-    res <- .control_eFDR(ACATpvalue, fdr = fdr)
+    res <- .control_eFDR(x=ACATpvalue, fdr = fdr)
 
     return(res)
 
