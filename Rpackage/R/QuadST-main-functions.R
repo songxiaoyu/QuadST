@@ -215,19 +215,58 @@ test_QuadST_model <- function(x, datatype, cov=NULL, tau, parallel=F){
 #'
 identify_ICGs <- function(pMatrix, fdr = 0.1){
 
-    object <- pMatrix
-    if ( !is(object, "matrix") ) stop("Object must be a matrix")
+  pvalue <- pMatrix
+  if ( !is(pvalue, "matrix") ) stop("Object must be a matrix")
 
-    # Step 1 ---------------------------
-    # Calculate combined gene-specific p-values across each highest and lowest quantiles symmetrically around
-    # the median quantile (0.5).
-    ACATpvalue <- .ACAT_QRpvalue(object)
+  L <- ncol(pvalue)
+  M <- floor(L/2)
+  eFDR =NoSig = NULL
+  for (m in 1:M) {
+    cuts=pvalue[,m]
 
-    # Step 2 ---------------------------
-    # Identify ICGs controlling empirical false discovery rate
-    res <- .control_eFDR(x=ACATpvalue, fdr = fdr)
+    pB=pvalue[,c(1:m)] # near (large signal- ICG)
+    pA=pvalue[,seq(L, L-m+1)] # further (little signal)
 
-    return(res)
+    nA=sapply(cuts, function(f) mean(pA<f))
+    nB=sapply(cuts, function(f) mean(pB<f))
+    eFDR1= (nA+0.0001)/(nB+0.0001)
+
+    eFDR1_reorder=eFDR1[order(eFDR1)]
+    o <- order(cuts)
+    ro <- order(o)
+    eFDR1_clean=pmin(1, eFDR1_reorder)[ro]
+    names(eFDR1_clean)=names(eFDR1)
+
+    # temp=data.frame(cuts, nA, nB, eFDR1, eFDR1_clean)
+
+    eFDR=cbind(eFDR, eFDR1_clean)
+    NoSig=c(NoSig, sum(eFDR1_clean<fdr))
+  }
+
+  if (any(NoSig>0)) {
+    m1=which.max(NoSig)
+    s.table=data.frame(idx_ICG=m1,
+                       Q_taus=colnames(pvalue)[m1],
+                       sig_gene_count=NoSig[m1])
+    d.table=data.frame(gene=rownames(pvalue),
+                       pvalue=pvalue[,s.table$Q_taus],
+                       eFDR=eFDR[,m1],
+                       ICG=1*(eFDR[,m1]<fdr))
+
+  }else{
+    m1=which.min(apply(eFDR, 2, min))
+    s.table =  data.frame(idx_ICG=NA,
+                          Q_taus=colnames(pvalue)[m1],
+                          sig_gene_count=0)
+
+    d.table =  data.frame(gene=rownames(pvalue),
+                          pvalue=pvalue[,s.table$Q_taus],
+                          eFDR=eFDR[,m1],
+                          ICG=0)
+  }
+
+
+  return(list(summary.table=s.table, data.table=d.table))
 
 }
 
