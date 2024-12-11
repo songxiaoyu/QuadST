@@ -229,7 +229,7 @@ identify_ICGs <- function(pMatrix, fdr = 0.1){
 
     nA=sapply(cuts, function(f) mean(pA<f))
     nB=sapply(cuts, function(f) mean(pB<f))
-    eFDR1= (nA+0.00001)/(nB+0.00001)
+    eFDR1= (nA+0.000001)/(nB+0.000001)
 
     eFDR1_reorder=eFDR1[order(eFDR1)]
     o <- order(cuts)
