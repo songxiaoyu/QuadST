@@ -27,7 +27,7 @@
     for (i in 1:k) {
       nn1 <- spatstat.geom::nnwhich(object, by=facet, k=i)[acell,2]
       nnd1 <- spatstat.geom::nndist(object, by=facet, k=i)[acell,2]
-      nn_pair1=cbind.data.frame(anchor=object[[cell_id]][acell], neighbor=nn1,
+      nn_pair1=cbind.data.frame(anchor=object$ID[acell], neighbor=nn1,
                                 distance=nnd1, k=i)
       nn_pair=rbind(nn_pair, nn_pair1)
     }

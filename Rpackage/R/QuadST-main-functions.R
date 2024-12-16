@@ -46,7 +46,7 @@ create_integrated_matrix <- function(x, cell_id, cell_coord1, cell_coord2, cell_
     sce_yrange <- c(min(sce_y) - 1, max(sce_y) + 1)
     sce_ppp <- spatstat.geom::ppp(x=sce_x, y=sce_y, xrange=sce_xrange,
                                   yrange=sce_yrange, marks=as.factor(sce_mk))
-    sce_ppp[[cell_id]] <- colData(object)[[cell_id]]
+    sce_ppp[["ID"]] <- colData(object)[[cell_id]]
 
     # Step 2 ---------------------------
     # Find nearest source (neighbor cells) of target (anchor cells) and their distance

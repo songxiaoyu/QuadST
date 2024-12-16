@@ -19,6 +19,7 @@ devtools::install_github("songxiaoyu/QuadST/Rpackage")
 
 ``` r
 library(QuadST)
+sessionInfo() 
 ```
 
 ### Load a public data set
@@ -117,18 +118,18 @@ res$summary.table
 ```
 
     ##   idx_ICG Q_taus sig_gene_count
-    ## 1       6   0.12            306
+    ## 1       6   0.12            263
 
 ``` r
 res$data.table[1:5,] 
 ```
 
     ##        gene     pvalue      eFDR ICG
-    ## Aatf   Aatf 0.10584407 0.3231716   0
-    ## Abat   Abat 0.22049735 0.4625917   0
-    ## Abhd2 Abhd2 0.94198755 0.9647010   0
-    ## Abhd6 Abhd6 0.09242494 0.3015882   0
-    ## Abl1   Abl1 0.66343834 0.7625822   0
+    ## Aatf   Aatf 0.16139525 0.4560062   0
+    ## Abat   Abat 0.09203721 0.3480015   0
+    ## Abhd2 Abhd2 0.99014747 0.9959088   0
+    ## Abhd6 Abhd6 0.19788379 0.5011222   0
+    ## Abl1   Abl1 0.53873411 0.7823079   0
 
 ``` r
 # B. Interaction quantile and distance

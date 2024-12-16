@@ -23,6 +23,7 @@ devtools::install_github("songxiaoyu/QuadST/Rpackage")
 
 ```{r echo = T, results = 'hide'}
 library(QuadST)
+sessionInfo() 
 ```
 
 ### Load a public data set 
