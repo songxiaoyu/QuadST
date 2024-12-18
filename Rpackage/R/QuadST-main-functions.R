@@ -231,12 +231,19 @@ identify_ICGs <- function(pMatrix, fdr = 0.1){
     nB=sapply(cuts, function(f) mean(pB<f))
     eFDR1= (nA+0.000001)/(nB+0.000001)
 
-    eFDR1_reorder=eFDR1[order(eFDR1)]
-    o <- order(cuts)
+    o <- order(cuts, decreasing = F)
     ro <- order(o)
-    eFDR1_clean=pmin(1, eFDR1_reorder)[ro]
+    eFDR1_clean=pmin(1, cummin(eFDR1[o]))[ro]
     names(eFDR1_clean)=names(eFDR1)
+    eFDR=cbind(eFDR, eFDR1_clean)
+    NoSig=c(NoSig, sum(eFDR1_clean<fdr))
 
+
+    # eFDR1_reorder=eFDR1[order(eFDR1)]
+    # o <- order(cuts)
+    # ro <- order(o)
+    # eFDR1_clean=pmin(1, eFDR1_reorder)[ro]
+    # names(eFDR1_clean)=names(eFDR1)
     # temp=data.frame(cuts, nA, nB, eFDR1, eFDR1_clean)
 
     eFDR=cbind(eFDR, eFDR1_clean)
