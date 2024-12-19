@@ -150,7 +150,7 @@ fig4_d= ggplot(dat=DSres, aes(x =  neighbor, y= DS,
   geom_point(position = position_jitter(width = 0.1, height = 0))+
   scale_color_manual(values=cbPalette[2:8], name="Neighbor")+
   facet_grid(~ anchor, switch = "x") + 
-  coord_fixed(ratio=1)+
+  # coord_fixed(ratio=1)+
   scale_alpha_manual(values = c(1, 0.01))+
   theme_minimal() + 
   theme(
@@ -247,7 +247,7 @@ dist.cutoff<-seqfish_res_list[["Excitatory neuron-Excitatory neuron"]]$dist.cuto
 }
 fig4_f1
 fig4_f2
-fig4_f= plot_grid(fig4_f1, fig4_f2, ncol = 2)
+fig4_f= fig4_f1+ fig4_f2
 fig4_f
 
 # Output Figure3 ===============================
