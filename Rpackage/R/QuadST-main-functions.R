@@ -232,7 +232,7 @@ identify_ICGs <- function(pMatrix, fdr = 0.1){
     nB=sapply(cuts, function(f) mean(pB<f))
     eFDR1= (nA+0.000001)/(nB+0.000001)
 
-    o <- order(cuts, decreasing = F)
+    o <- order(cuts, decreasing = T)
     ro <- order(o)
     eFDR1_clean=pmin(1, cummin(eFDR1[o]))[ro]
     names(eFDR1_clean)=names(eFDR1)
