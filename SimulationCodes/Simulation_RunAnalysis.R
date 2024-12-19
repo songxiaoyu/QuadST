@@ -11,7 +11,9 @@ suppressMessages(library(mvtnorm))
 setwd("/Users/songxiaoyu152/NUS Dropbox/Xiaoyu Song/SpatialTranscriptomics/Paper_QuadST_Revision")
 source("../Paper_QuadST/Github/Rpackage/R/QuadST-helper-functions.R")
 source("../Paper_QuadST/Github/Rpackage/R/QuadST-main-functions.R")
-source("../Github/SimulationCodes/Simulation_Functions.R")
+source("../Paper_QuadST/Github/SimulationCodes/Simulation_Functions.R")
+
+
 
 ## Method comparison between QuadST and others (Figure 2d-g) ##############################
 #  Fig 2d: ideal case

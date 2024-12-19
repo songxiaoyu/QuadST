@@ -2,10 +2,11 @@ rm(list=ls())
 library(QuadST)
 library(parallel)
 library(SingleCellExperiment)
+library(tidyverse)
 setwd("/Users/songxiaoyu152/NUS Dropbox/Xiaoyu Song/SpatialTranscriptomics/Paper_QuadST_Revision")
 # Save SingleCellExperiment objects list ##############################
 load("Data/2023_merfish_frontalcortex/processed/MERFISH_scran_sce.RData")
-
+MERFISH_scran_sce
 
 # Run QuadST ------------------
 ## ------------------ Step 0: Specify data and parameters ------------------
@@ -34,7 +35,7 @@ RunQuadST=function(anchor, neighbor){
   # # Filter gene expression with number of non zeros (at least 5 samples per gene)
   expr=assay(sce_an, "adjusted.counts")
   xm <- apply(expr, 1, mean)
-  xmq <- quantile(xm, 0.75)
+  xmq <- quantile(xm, 0.25)
   gene_to_keep1 <- names(xm)[xm > xmq]
   xm2 <- apply(expr, 1, function(f) sum(f!=0)>5)
   gene_to_keep2 <- names(xm2)[xm2]
@@ -49,7 +50,15 @@ RunQuadST=function(anchor, neighbor){
   QRpvalue <- QuadST::test_QuadST_model(x=sce_an_sub, datatype="normcounts", 
                                         cov = cov, tau = dist_taus, parallel=T)
   res <- QuadST::identify_ICGs(pMatrix=QRpvalue, fdr = 0.1)
+  
+  
+  
+  #get distance
+  
   distance<-QuadST::ICG_distance(x=sce_an, ICG.summary=res$summary.table, k=k)
+  res$dist.cutoff<-distance
+  res$distance<-data.frame(cellID=sce_an@colData@listData[["cellID"]],
+                           w_distance=sce_an@colData@listData[["w_distance"]])
   
   # get Directional Score
   tau=res$summary.table[2] %>% as.numeric()
@@ -72,11 +81,12 @@ for (i in celltypes) {
     merfish_res_list[[cell_pair]]=res_i
   }
 }
+# sum(sapply(merfish_res_list, function(f) f$summary.table[3]!=0))
 
 save(merfish_res_list,file="Results/merfish_quadst_res.RData")
 
 
-
+# load("Results/merfish_quadst_res.RData")
 
 res <- NULL
 for(i in 1:length(merfish_res_list)){
@@ -88,3 +98,4 @@ for(i in 1:length(merfish_res_list)){
 }
 write.table(res, file="Result/SupplementaryTable2.csv", sep=",", row.names = F, col.names = T)
 
+res[res$anchor=="ExN" & res$neighbor=="ExN" & res$ICG==1,]

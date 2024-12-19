@@ -157,13 +157,15 @@ fig4_d= ggplot(dat=DSres, aes(x =  neighbor, y= DS,
      strip.text.x = element_text(angle = 45),   # Customize strip text
      strip.background = element_blank(),    # Style strip background
      strip.placement = "outside",                            # Place strips outside the plot area
-     axis.text.x = element_blank()
+     axis.text.x = element_blank(),
+     
    )+ 
    labs(y="Directional Association Score", 
           x="Anchor")+
    guides(
      alpha = guide_legend(
        title = "Identification",
+       override.aes = list(alpha =c(1, 0.2))
      ))
 
 fig4_d

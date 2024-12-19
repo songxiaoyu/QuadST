@@ -35,7 +35,7 @@ RunQuadST=function(anchor, neighbor){
   xm <- apply(expr, 1, mean)
   xmq <- quantile(xm, 0.75)
   gene_to_keep1 <- names(xm)[xm > xmq]
-  xm2 <- apply(expr, 1, function(f) sum(f!=0)>5)
+  xm2 <- apply(expr, 1, function(f) sum(f!=0)>=5)
   gene_to_keep2 <- names(xm2)[xm2]
   sce_an_sub <- sce_an[intersect(gene_to_keep1, gene_to_keep2),]
   
@@ -54,7 +54,7 @@ RunQuadST=function(anchor, neighbor){
   res$distance<-data.frame(cellID=sce_an@colData@listData[["cellID"]],
                            w_distance=sce_an@colData@listData[["w_distance"]])
   
-  # get Directional Score
+  # get coef for Directional Score
   tau=res$summary.table[2] %>% as.numeric()
   y = sce_an_sub$w_distance
   x<-sce_an_sub@assays@data@listData$normcounts
@@ -93,3 +93,4 @@ for(i in 1:length(seqfish_res_list)){
 }
 write.table(res, file="Result/SupplementaryTable1.csv", sep=",", row.names = F, col.names = T)
 
+dat=read.table("Result/SupplementaryTable1.csv")
