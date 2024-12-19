@@ -112,10 +112,10 @@
 
 
 
-#' Transform cell-specific bias adjusted counts to a normally distribution with the minimum value at zero
+#' Transform expression data to a normally distribution with the minimum value at zero
 #'
 #'
-#' @param x An expression matrix.
+#' @param x An G by N expression matrix.
 #'
 #'
 #' @return A transformed expression matrix.
@@ -128,26 +128,20 @@
 transform_count_to_normal <- function(x){
 
     # Step 1 ---------------------------
+    N=ncol(x)
+    G=nrow(x)
     # Transform a given distribution to a normal distribution.
-    fun_ecdf <- ecdf(x)
-    x_ecdf <- fun_ecdf(x)
-    x_norm <- qnorm(x_ecdf)
-
-    # Step 2 ---------------------------
-    # If the maximum of ecdf value (x_ecdf) is equal to 1, the inverse of cdf (x_norm) can become infinity.
-    # Ensure that the maximum of ecdf value (x_ecdf) is less than 1.
-    if ( any(!is.finite(x_norm)) ){
-        x_num <- c(as.numeric(x), max(as.numeric(x) + 1))
-        fun_ecdf <- ecdf(x_num)
-        x_ecdf <- fun_ecdf(x_num)[-length(as.numeric(x_num))]
-        x_norm <- qnorm(x_ecdf)
+    x_norm <- qnorm(1:N/(N+1))
+    expr=matrix(NA, ncol=N, nrow=G)
+    for (i in 1:G) {
+      q1=rank(x[i,])
+      x2=x_norm[q1]
+      min=min(x2)
+      expr[i,]=x2-min
     }
-
-    # Step 3 ---------------------------
-    # Set the minimum value of a normal distribution at 0.
-    x_norm_minzero <- matrix(x_norm, nrow=nrow(x), ncol=ncol(x), dimnames=list(rownames(x), colnames(x))) - min(x_norm)
-
-    return(x_norm_minzero)
+    colnames(expr)=colnames(x)
+    rownames(expr)=rownames(x)
+    return(expr)
 }
 
 

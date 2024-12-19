@@ -180,8 +180,9 @@ test_QuadST_model <- function(x, datatype, cov=NULL, tau, parallel=F){
     if (length(genes_w_zeros)!=0) {
         # Test distance-expression association for genes with some zeros in expression values.
       if (parallel==F) {
-        pvalue2 <- sapply(genes_w_zeros, function(f) .QRank_multi(y=y, x=cbind(xMatrix[,f], 1*I(xMatrix[,f] != 0)),
-                                                                  cov=covM, tau=tau, alternative="two-sided-directional")$quantile.specific.pvalue) %>% t(.)
+        pvalue2 <- sapply(genes_w_zeros, function(f)
+          .QRank_multi(y=y, x=cbind(xMatrix[,f], 1*I(xMatrix[,f] != 0)),
+                       cov=covM, tau=tau, alternative="two-sided-directional")$quantile.specific.pvalue) %>% t(.)
 
       } else {
         pvalue_temp <- parallel::mclapply(genes_w_zeros, function(f) .QRank_multi(y=y, x=cbind(xMatrix[,f], 1*I(xMatrix[,f] != 0)),
