@@ -51,26 +51,27 @@ sessionInfo()
     ## 
     ## loaded via a namespace (and not attached):
     ##  [1] xfun_0.49               htmlwidgets_1.6.4       remotes_2.5.0          
-    ##  [4] lattice_0.22-6          vctrs_0.6.5             tools_4.4.1            
-    ##  [7] curl_6.0.1              Matrix_1.7-0            lifecycle_1.0.4        
-    ## [10] GenomeInfoDbData_1.2.12 compiler_4.4.1          QRank_1.0              
-    ## [13] MatrixModels_0.5-3      SparseM_1.84-2          httpuv_1.6.15          
-    ## [16] quantreg_5.99.1         htmltools_0.5.8.1       yaml_2.3.10            
-    ## [19] later_1.3.2             crayon_1.5.3            urlchecker_1.0.1       
-    ## [22] MASS_7.3-61             ellipsis_0.3.2          cachem_1.1.0           
-    ## [25] DelayedArray_0.30.1     sessioninfo_1.2.2       abind_1.4-8            
-    ## [28] mime_0.12               digest_0.6.37           purrr_1.0.2            
-    ## [31] splines_4.4.1           fastmap_1.2.0           grid_4.4.1             
-    ## [34] cli_3.6.3               SparseArray_1.4.8       magrittr_2.0.3         
-    ## [37] S4Arrays_1.4.1          survival_3.7-0          pkgbuild_1.4.4         
-    ## [40] ACAT_0.91               UCSC.utils_1.0.0        promises_1.3.0         
-    ## [43] rmarkdown_2.29          XVector_0.44.0          httr_1.4.7             
-    ## [46] memoise_2.0.1           shiny_1.9.1             evaluate_1.0.1         
-    ## [49] knitr_1.49              miniUI_0.1.1.1          profvis_0.4.0          
-    ## [52] rlang_1.1.4             Rcpp_1.0.13-1           xtable_1.8-4           
-    ## [55] glue_1.8.0              pkgload_1.4.0           rstudioapi_0.17.1      
-    ## [58] jsonlite_1.8.9          R6_2.5.1                fs_1.6.5               
-    ## [61] zlibbioc_1.50.0
+    ##  [4] processx_3.8.4          lattice_0.22-6          callr_3.7.6            
+    ##  [7] vctrs_0.6.5             tools_4.4.1             ps_1.8.1               
+    ## [10] curl_6.0.1              Matrix_1.7-0            desc_1.4.3             
+    ## [13] lifecycle_1.0.4         GenomeInfoDbData_1.2.12 compiler_4.4.1         
+    ## [16] MatrixModels_0.5-3      QRank_1.0               SparseM_1.84-2         
+    ## [19] httpuv_1.6.15           quantreg_5.99.1         htmltools_0.5.8.1      
+    ## [22] yaml_2.3.10             later_1.3.2             crayon_1.5.3           
+    ## [25] urlchecker_1.0.1        MASS_7.3-61             ellipsis_0.3.2         
+    ## [28] cachem_1.1.0            DelayedArray_0.30.1     sessioninfo_1.2.2      
+    ## [31] abind_1.4-8             mime_0.12               digest_0.6.37          
+    ## [34] purrr_1.0.2             splines_4.4.1           fastmap_1.2.0          
+    ## [37] grid_4.4.1              cli_3.6.3               SparseArray_1.4.8      
+    ## [40] magrittr_2.0.3          S4Arrays_1.4.1          survival_3.7-0         
+    ## [43] pkgbuild_1.4.4          UCSC.utils_1.0.0        promises_1.3.0         
+    ## [46] rmarkdown_2.29          XVector_0.44.0          httr_1.4.7             
+    ## [49] memoise_2.0.1           shiny_1.9.1             evaluate_1.0.1         
+    ## [52] knitr_1.49              miniUI_0.1.1.1          profvis_0.4.0          
+    ## [55] rlang_1.1.4             Rcpp_1.0.13-1           xtable_1.8-4           
+    ## [58] glue_1.8.0              pkgload_1.4.0           rstudioapi_0.17.1      
+    ## [61] jsonlite_1.8.9          R6_2.5.1                fs_1.6.5               
+    ## [64] zlibbioc_1.50.0
 
 ### Load a public data set
 
@@ -136,8 +137,8 @@ sce_an
 # A. Determine the number of quantile levels, e.g., to ensure that there are at 
 # least 5 samples in each quantile level and a max o f49 quantile levels.
 
-dist_taus <- create_quantile_levels(min_sample_per_quantile = 5, 
-                                    cell_count = dim(sce_an)[2], max_default = 49)
+dist_taus <- create_quantile_levels(cell_count = dim(sce_an)[2], min_sample_per_quantile = 5, 
+                                    max_default = 49)
 
 # B. Subset genes to analyze, e.g., top 25% highly expressed genes.
 xm <- apply(t(assay(sce_an, "adjusted.counts")), 2, mean)
