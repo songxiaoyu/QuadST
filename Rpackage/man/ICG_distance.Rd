@@ -2,7 +2,7 @@
 % Please edit documentation in R/QuadST-main-functions.R
 \name{ICG_distance}
 \alias{ICG_distance}
-\title{Identify cell-cell interaction distance}
+\title{Find cell-cell interaction distance (given ICG is identified)}
 \usage{
 ICG_distance(x, ICG.summary, k)
 }
@@ -17,5 +17,5 @@ ICG_distance(x, ICG.summary, k)
 Interacting distance.
 }
 \description{
-Identify cell-cell interaction distance
+Find cell-cell interaction distance (given ICG is identified)
 }

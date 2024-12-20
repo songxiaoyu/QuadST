@@ -1,5 +1,6 @@
 #' Create anchor-neighbor cell type pair integrated matrix
-#`  i.e., anchor-neighbor cellpair distance and anchor cells' expression and covariates
+#'
+#' The data includes anchor-neighbor cell pair distance, anchor cells' expression, and covariates
 #'
 #'
 #' @param x A \code{SingleCellExperiment} class.
@@ -76,11 +77,11 @@ create_integrated_matrix <- function(x, cell_id, cell_coord1, cell_coord2, cell_
 }
 
 
-#' Create a set of highest and lowest quantiles symmetric around median
+#' Create a set of evenly distributed quantile levels
 #'
 #'
-#' @param min_sample_per_quantile A minimum number of samples in a given quantile level.
 #' @param cell_count The number of anchor cell counts.
+#' @param min_sample_per_quantile A minimum number of samples in a given quantile level.
 #' @param max_default Default = 49. The maximum number of quantile levels to use. Default = 49 means
 #' quantile levels 0.02, 0.04, ..., 0.98 are under consideration.
 #'
@@ -115,14 +116,13 @@ create_quantile_levels <- function(min_sample_per_quantile, cell_count, max_defa
 }
 
 
-#' Test anchor-neighbor distance-expression association
-#'  at a set of highest and lowest quantiles symmetric around median
+#' Test anchor-neighbor distance-expression association at a grid of quantile levels
 #'
 #'
 #' @param x A \code{SingleCellExperiment} class.
 #' @param datatype A column name of \code{assays(object)} that stores anchor cells' gene expression levels.
 #' @param cov Column names of \code{colData(object)} that needs to be adjusted as covariates.
-#' @param tau A set of highest and lowest quantiles symmetric around median.
+#' @param tau A set of evenly distributed quantile levels.
 #' @param parallel Default=False. If parallel computing is activated.
 #' @import QRank
 #'
@@ -239,14 +239,6 @@ identify_ICGs <- function(pMatrix, fdr = 0.1){
     eFDR=cbind(eFDR, eFDR1_clean)
     NoSig=c(NoSig, sum(eFDR1_clean<fdr))
 
-
-    # eFDR1_reorder=eFDR1[order(eFDR1)]
-    # o <- order(cuts)
-    # ro <- order(o)
-    # eFDR1_clean=pmin(1, eFDR1_reorder)[ro]
-    # names(eFDR1_clean)=names(eFDR1)
-    # temp=data.frame(cuts, nA, nB, eFDR1, eFDR1_clean)
-
     eFDR=cbind(eFDR, eFDR1_clean)
     NoSig=c(NoSig, sum(eFDR1_clean<fdr))
   }
@@ -278,7 +270,7 @@ identify_ICGs <- function(pMatrix, fdr = 0.1){
 
 }
 
-#' Identify cell-cell interaction distance
+#' Find cell-cell interaction distance (given ICG is identified)
 #'
 #'
 #' @param x A \code{SingleCellExperiment} class.

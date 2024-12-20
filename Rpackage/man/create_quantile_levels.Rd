@@ -2,7 +2,7 @@
 % Please edit documentation in R/QuadST-main-functions.R
 \name{create_quantile_levels}
 \alias{create_quantile_levels}
-\title{Create a set of highest and lowest quantiles symmetric around median}
+\title{Create a set of evenly distributed quantile levels}
 \usage{
 create_quantile_levels(min_sample_per_quantile, cell_count, max_default = 49)
 }
@@ -18,7 +18,7 @@ quantile levels 0.02, 0.04, ..., 0.98 are under consideration.}
 A vector of quantile levels.
 }
 \description{
-Create a set of highest and lowest quantiles symmetric around median
+Create a set of evenly distributed quantile levels
 }
 \examples{
 data("seqFISHplus_scran_sce")

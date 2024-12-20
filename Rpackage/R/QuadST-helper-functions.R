@@ -9,7 +9,7 @@
 #' will not be paired even though they are the k nearest neighbors.
 #' @importFrom magrittr "%>%"
 #' @return A data frame for anchor-neighbor cell pairs with their distances and interaction strengths.
-#'
+#' @export
 #'
 #' @noRd
 #'
@@ -37,7 +37,7 @@
 }
 
 
-#' Calculate test statistics of the parameters in QuadST quantile regression model: Signed-QRank
+#' Signed-QRank to calculate test statistics of multiple parameters in QuadST quantile regression model
 #'
 #'
 #' @param y An variable indicating anchor-neighbor interaction strength.
@@ -52,7 +52,7 @@
 #' @return A list of Signed-QRank test results
 #' \item{quantile.specific.pvalue}{Signed-QRank p-value at each quantile.}
 #' \item{quantile.specific.test}{Signed-QRank test statistics at each quantile.}
-#'
+#' @export
 #'
 #' @noRd
 #'

@@ -21,7 +21,7 @@ devtools::install_github("songxiaoyu/QuadST/Rpackage")
 
 
 
-```{r echo = T, results = 'hide'}
+```{r echo = T}
 library(QuadST)
 sessionInfo() 
 ```
@@ -29,9 +29,9 @@ sessionInfo()
 ### Load a public data set 
 Our example data was published by Eng, Chee-Huat Linus, et al 2019 (https://www.nature.com/articles/s41586-019-1049-y). You can downloaded it directly in our folder Data_2019_seqfish_plus_SScortex  or  using this link (https://github.com/songxiaoyu/QuadST/tree/main/Data_2019_seqfish_plus_SScortex). 
 
-The data preprocessing step can be found in XXX.R, which uses three inputs: (1) gene * cell count matrix for expression, (2) cell spatial coordinates, (3) cell features (e.g. cell type, FOV). The output is a  "SingleCellExperiment" object called seqFISHplus_scran_sce for QuadST analysis. Here we directly load seqFISHplus_scran_sce to demonstrate QuadST. 
+The data preprocessing step can be found in RealData_SeqFISHplus/1_PreprocessData_SeqFISHplus.R, which uses three inputs: (1) gene * cell count matrix for expression, (2) cell spatial coordinates, (3) cell features (e.g. cell type, FOV). The output is a  "SingleCellExperiment" object called seqFISHplus_scran_sce for QuadST analysis. Here we directly load seqFISHplus_scran_sce to demonstrate QuadST. 
 ```{r results = 'hide'}
-data("seqFISHplus_scran_sce")
+data("seqFISHplus_scran_sce") # load a "SingleCellExperiment" object
 ```
 
 
@@ -39,14 +39,12 @@ data("seqFISHplus_scran_sce")
 #### Step 1: Specify data and parameters
 Below demonstrates the QuadST analysis pipeline for an anchor-neighbor single cell type pair (Excitatory neuron - Excitatory neuron). Multiple cell type pairs can be analyzed in parallel.
 ```{r results = 'hide'}
-data("seqFISHplus_scran_sce") # load a "SingleCellExperiment" object
 cell_id = "cellID"  # variable name for cell index
 cell_coord1 = "x" # variable name of spatial coordinate x
 cell_coord2 = "y" # variable name of spatial coordinate x
 cell_type = "cellClass" # variable name for cell type
 anchor = "Excitatory neuron" # anchor cell type
 neighbor = "Excitatory neuron" # neighbor cell type, which can be the same as anchor or different. 
-datatype <- "normcounts" # data types used for QuadST analysis 
 covariate <- "FOV" # covariates to adjust for 
 k=1 # No. of nearest neighbors. 
 d.limit=Inf # the limit of distance for cell pairing. 
@@ -64,9 +62,11 @@ sce_an
 #### Step 3: Model and test distance-expression association
 
 ```{r}
-# A. Determine the number of quantile levels, e.g., to ensure that there are at least 5 samples in each quantile level.
+# A. Determine the number of quantile levels, e.g., to ensure that there are at 
+# least 5 samples in each quantile level and a max o f49 quantile levels.
 
-dist_taus <- create_quantile_levels(min_sample_per_quantile = 5, cell_count = dim(sce_an)[2], max_default = 49)
+dist_taus <- create_quantile_levels(cell_count = dim(sce_an)[2], min_sample_per_quantile = 5, 
+                                    max_default = 49)
 
 # B. Subset genes to analyze, e.g., top 25% highly expressed genes.
 xm <- apply(t(assay(sce_an, "adjusted.counts")), 2, mean)
@@ -74,13 +74,14 @@ xmq <- quantile(xm, 0.75)
 gene_to_keep <- names(xm)[xm > xmq]
 sce_an_sub <- sce_an[gene_to_keep,]
 
-# C. Transform cell-specific bias adjusted counts to normally distributed values.
+# C. Transform adjusted counts to normally distributed values with minmimal zero.
 assay(sce_an_sub, "normcounts") <- transform_count_to_normal(assay(sce_an_sub, "adjusted.counts"))
 
 # D. Provide the colunm names of sce_an_sub that correspond to distance, expression values, and covariates to be used for analysis.
 
-QRpvalue <- test_QuadST_model(x=sce_an_sub, datatype=datatype,cov = covariate, tau = dist_taus, parallel=T)
-str(QRpvalue)
+QRpvalue <- test_QuadST_model(x=sce_an_sub, datatype="normcounts",cov = covariate, tau = dist_taus, 
+                              parallel=T)
+QRpvalue[1:3,1:3]
 
 
 

@@ -40,5 +40,5 @@ will not be paired even though they are the k nearest neighbors.}
 An anchor-neighbor integrated matrix in the \code{SingleCellExperiment} class.
 }
 \description{
-Create anchor-neighbor cell type pair integrated matrix
+The data includes anchor-neighbor cell pair distance, anchor cells' expression, and covariates
 }

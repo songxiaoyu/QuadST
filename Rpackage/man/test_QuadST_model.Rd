@@ -2,8 +2,7 @@
 % Please edit documentation in R/QuadST-main-functions.R
 \name{test_QuadST_model}
 \alias{test_QuadST_model}
-\title{Test anchor-neighbor distance-expression association
- at a set of highest and lowest quantiles symmetric around median}
+\title{Test anchor-neighbor distance-expression association at a grid of quantile levels}
 \usage{
 test_QuadST_model(x, datatype, cov = NULL, tau, parallel = F)
 }
@@ -14,7 +13,7 @@ test_QuadST_model(x, datatype, cov = NULL, tau, parallel = F)
 
 \item{cov}{Column names of \code{colData(object)} that needs to be adjusted as covariates.}
 
-\item{tau}{A set of highest and lowest quantiles symmetric around median.}
+\item{tau}{A set of evenly distributed quantile levels.}
 
 \item{parallel}{Default=False. If parallel computing is activated.}
 }
@@ -22,6 +21,5 @@ test_QuadST_model(x, datatype, cov = NULL, tau, parallel = F)
 A matrix of quantile regression p-values in the format of genes (rows) by quantile levels (columns).
 }
 \description{
-Test anchor-neighbor distance-expression association
- at a set of highest and lowest quantiles symmetric around median
+Test anchor-neighbor distance-expression association at a grid of quantile levels
 }
