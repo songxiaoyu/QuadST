@@ -1,23 +1,37 @@
+# Figure5-merfish. pdf: A+B+C+D
+## *---------------------------
+##
+## Script name: Figure5
+##
+## Purpose of script: spatial map(5a) + umap(5b) + partial r2(5c) +bubble chart(5d)
+## + direction score(5e)
+##
+## *---------------------------
+##
+## Notes:
+##   
+## *---------------------------
+rm(list=ls())
 library(RColorBrewer)
 library(ggplot2)
+library(tidyr)
 library(dplyr)
 library(Seurat)
 library(rsq)
-setwd("/Users/songxiaoyu152/NUS Dropbox/Xiaoyu Song/SpatialTranscriptomics/Paper_QuadST_Revision")
-load("Data/2023_merfish_frontalcortex/processed/MERFISH_scran_sce.RData")
+setwd("QuadST")
 load("Results/merfish_quadst_res.RData")
-
+load("Data/2023_merfish_frontalcortex/processed/MERFISH_scran_sce.RData")
 
 { title_size <- 12
   legend_size <- 10
   text_size <- 11
   number_size <- 3
-  axis_text_size <- 10
+  axis_text_size <- 11
   cbPalette <- c("#999999", "#E69F00", "#009E73", "#56B4E9", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 }
 
 # Fig5a. Spatial map ###################  
-p_a
+#p_a
 dt_mer<-MERFISH_scran_sce@colData %>%as.data.frame()
 dt_mer$cellClass<-factor(dt_mer$cellClass)
 levels(dt_mer$cellClass)=c("Astrocyte","Endothelial","Excitatory neuron","Inhibitory neuron",
@@ -32,12 +46,16 @@ p_a<-ggplot(dt_mer, aes(x = x, y = y, color = cellClass)) +
   coord_fixed()+
   theme_classic() +
   guides(color = guide_legend(override.aes = list(size = 1))) +
-  theme(legend.position = "right",  
-        legend.justification = c(0, 1),
-        legend.background = element_rect(fill = NA, color = NA),
-        axis.title.x = element_text(size=text_size), 
-        axis.title.y = element_text(size=text_size), axis.text.x = element_text(size=axis_text_size), 
-        axis.text.y = element_text(size=axis_text_size))
+  theme( legend.position = "right",        
+         legend.justification = c(0, 1),    
+         legend.background = element_rect(fill = NA, color = NA),
+         axis.title.x = element_text(size = text_size),  
+         axis.title.y = element_text(size = text_size),  
+         axis.text.x = element_text(size=axis_text_size), 
+         axis.text.y = element_text(size=axis_text_size),
+         legend.text=element_text(size=legend_size),
+         legend.title=element_text(size=text_size),
+         plot.margin = margin(t = 10, r = 10, b = 10, l = 0) )
 p_a
 
 
@@ -67,19 +85,27 @@ p_b1 <- ggplot(dat, aes(x=UMAP1, y=UMAP2, color = cellClass)) +
   theme(axis.title.x = element_text(size=text_size), 
         axis.title.y = element_text(size=text_size),
         axis.text.x = element_text(size=axis_text_size), 
-        axis.text.y = element_text(size=axis_text_size))#+
+        axis.text.y = element_text(size=axis_text_size),
+        legend.text=element_text(size=legend_size),
+        legend.position = "top",  
+        legend.title = element_blank(),
+        legend.key.size = unit(1, 'pt'))+
+  guides(color = guide_legend(nrow = 3))#+
   #guides(color = guide_legend(nrow = 2))
 p_b1
 
+dat$region <- gsub("cortical layer ", "", dat$region)
 p_b2 <- ggplot(dat, aes(x=UMAP1, y=UMAP2, color = region)) + 
-  geom_point() + scale_color_manual(values=brewer.pal(n = 3, name = "Purples")[1:3], name="")+
+  geom_point() + scale_color_manual(values=brewer.pal(n = 3, name = "Purples")[1:3], name = "Cortical Layer")+
   coord_fixed()+ 
   theme_classic() + 
   theme(axis.title.x = element_text(size=text_size), 
         axis.title.y = element_text(size=text_size), 
         axis.text.x = element_text(size=axis_text_size), 
         axis.text.y = element_text(size=axis_text_size),
-        legend.text=element_text(size=legend_size)) 
+        legend.text=element_text(size=legend_size),
+        legend.position = "top",  
+        legend.margin = margin(t = 5, r = 5, b = 0, l = 5)) 
 p_b2
 
 
@@ -107,7 +133,7 @@ p_c <- ggplot(dat2, aes(x=name, y=value)) +
   lims(y=c(0,1))+
   theme(axis.title.x = element_text(size=text_size), 
         axis.title.y = element_text(size=text_size), 
-        axis.text.x = element_text(size=axis_text_size, angle = 60, hjust = 1), 
+        axis.text.x = element_text(size=axis_text_size, angle = 55, hjust = 1), 
         axis.text.y = element_text(size=axis_text_size)) + 
   geom_text(aes(label=value), vjust=-0.2, color="blue", size=number_size) + 
   scale_x_discrete(labels=c("Cell Type", "Layer"))+ 
@@ -141,22 +167,17 @@ merfish_df1$neighbor<-neighbor1
 
 ## Plot Figure
 # Text sizes
-{
-  title_size <- 12
-  legend_size <- 10
-  text_size <- 11
-  axis_text_size <- 10}
 #seqfish_df$sig_gene_count > 0
 p_d <- ggplot(merfish_df1[, ], aes(anchor,neighbor))+ 
   geom_point(aes(size = ifelse(sig_gene_count > 0, sig_gene_count, NA)))+ 
-  scale_size_continuous(breaks=c(1, 5, 10,60, 120), limits=c(0, 300)) +
+  scale_size_continuous(breaks=c(1, 10, 150,300), limits=c(0, 3000)) +
   theme_minimal() + 
-  theme(axis.title.x = element_text(size=text_size), 
-        axis.title.y = element_text(size=text_size), 
-        axis.text.x = element_text(angle = 45, hjust = 1, size=axis_text_size), 
-        axis.text.y = element_text(size=axis_text_size), 
-        plot.title = element_text(size = title_size),  
-        legend.text=element_text(size=legend_size),
+  theme(axis.title.x = element_text(size=10), 
+        axis.title.y = element_text(size=10), 
+        axis.text.x = element_text(angle = 45, hjust = 1, size=10), 
+        axis.text.y = element_text(size=10), 
+        plot.title = element_text(size = 10),  
+        legend.text=element_text(size=10),
         legend.position = "bottom") +
   labs(size = "count") +xlab("Anchor") + ylab("Neighbor") 
 p_d
@@ -195,9 +216,13 @@ p_e= ggplot(dat=DSres, aes(x =  neighbor, y= DS,
   scale_alpha_manual(values = c(1, 0.01))+
   theme_minimal() + 
   theme(
-    strip.text.x = element_text(angle = 60),   # Customize strip text
+    strip.text.x = element_text(angle = 20,size=10),   # Customize strip text
     strip.background = element_blank(),    # Style strip background
     strip.placement = "outside",                            # Place strips outside the plot area
+    legend.title=element_text(size=11),
+    legend.text=element_text(size=10),
+    axis.title.x = element_text(size=12), 
+    axis.title.y = element_text(size=12), 
     axis.text.x = element_blank()
   )+ 
   labs(y="Directional Association Score", 
@@ -214,7 +239,7 @@ p_e
 
 # Output Figure5 ===============================
 library(cowplot)
-p_b=p_b1 + p_b2
+p_b=plot_grid(p_b1, p_b2, ncol = 2) 
 upper=plot_grid(p_a, p_d, labels = c("A", "D"), rel_widths = c(1.5, 1), ncol = 2)
 upper
 middle=plot_grid( p_b, p_c, labels = c("B", "C"), rel_widths = c(4, 1 ), ncol = 2)
@@ -223,7 +248,6 @@ lower=plot_grid(p_e, labels = c("E"),  ncol = 1)
 
 lower
 plot_grid(upper,  middle, lower,  ncol=1)
-
 
 ggsave(filename = "Figures/Figure5.pdf",  # File name
        width = 11,                   # Width in inches

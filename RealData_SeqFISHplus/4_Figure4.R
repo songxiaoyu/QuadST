@@ -1,40 +1,54 @@
+# Figure4-seqfish. pdf: A+B+C+D+E+F
+## *---------------------------
+##
+## Script name: Figure4
+##
+## Purpose of script: 
+## bubble chart(4A)+composition chart(4B)+pathway enrichment for EN-EN(4C)
+## + directional score(4D) + boxplot of pathway(4E) + visualization of key gene (4F)
+## *---------------------------
+##
+## Notes:
+##   
+## *---------------------------
 rm(list=ls())
 
 library(ggplot2)
 library(dplyr)
 library(ggrepel)
-setwd("/Users/songxiaoyu152/NUS Dropbox/Xiaoyu Song/SpatialTranscriptomics/Paper_QuadST_Revision")
+library(QuadST)
+library(patchwork)
+setwd("QuadST")
 load("Results/seqfish_quadst_res.RData")
-names(seqfish_res_list)
 
-{title_size <- 12
-  legend_size <- 10
-  text_size <- 11
-  axis_text_size <- 10}
+{title_size <- 14
+  legend_size <- 11
+  text_size <- 12
+  axis_text_size <- 12}
 
 # Fig4a. seqfish - bubble chart ###################  
 
-
+names(seqfish_res_list)
 res <- NULL
 for(i in 1:length(seqfish_res_list)){
   name<-names(seqfish_res_list)[i]
   anchor_i<- strsplit(name, "-")[[1]][1]
   neighbor_i<- strsplit(name, "-")[[1]][2]
   sig_gene_count_i<-seqfish_res_list[[i]]$summary.table$sig_gene_count
-  res[[i]] <- data.frame(anchor = anchor_i, neighbor = neighbor_i, 
+  res[[i]] <- data.frame(anchor = anchor_i, neighbor = neighbor_i,
                                   sig_gene_count = sig_gene_count_i)
 }
 seqfish_df <- do.call(rbind, res)
 
 # Text sizes
 fig4_a <- ggplot(seqfish_df[, ], aes(anchor,neighbor))+ 
-  geom_point(aes(size = ifelse(sig_gene_count > 0, sig_gene_count, NA)))+ 
-  scale_size_continuous(breaks=c(1, 5, 10,60, 120), limits=c(0, 300)) +
+  geom_point(aes(size = ifelse(sig_gene_count > 0, sig_gene_count, NA))) +
+  scale_size_continuous(breaks=c(1, 10,50, 200,300), limits=c(0, 400)) +
   theme_minimal() + 
   coord_fixed(ratio=0.5)+
   theme(axis.title.x = element_text(size=text_size), 
         axis.title.y = element_text(size=text_size), 
-        axis.text.x = element_text(angle = 45, hjust = 1, size=axis_text_size), 
+        axis.text.x = element_text(angle = 20, hjust = 1, size=axis_text_size), 
         axis.text.y = element_text(size=axis_text_size), 
         plot.title = element_text(size = title_size),  
         legend.text=element_text(size=legend_size),
@@ -74,7 +88,9 @@ fig4_b=ggplot(data=dat,aes(x = "", y = prop, fill = cat))+
   theme_minimal() +
   theme(axis.text.x = element_blank(), 
         axis.ticks.x = element_blank(),
-        legend.position = "bottom")+
+        legend.position = "bottom",     
+        legend.text = element_text(size = legend_size),                  
+        legend.title = element_text(size = legend_size))+
   scale_fill_manual(values = c( "#00CCFF", "#FFCC00",  "#999999"))+
   guides(fill = guide_legend(nrow = 3)) 
 
@@ -123,8 +139,9 @@ fig4_c=ggplot(dat1, aes(x=ID, y= logp)) +
   geom_bar(stat = "identity")+
   coord_flip()+
   theme_classic() +
-  labs(x="GO Cellular Component", y= "-log10(p-value)")+
-  theme(legend.title  = element_blank())
+  labs(x="GO Cellular Component", y= expression(-log[10](p-value)))+
+  theme(legend.text = element_text(size = legend_size),                  
+        legend.title = element_text(size = text_size))
 fig4_c
 
 
@@ -144,21 +161,31 @@ for(i in 1:length(seqfish_res_list)){
 DSres <- do.call(rbind, DSres)
 DSres$ICG2=ifelse(DSres$ICG==1, "ICG", "Not ICG")
 cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
-
+DSres$anchor <- gsub("Excitatory neuron", "Excitatory\nneuron", DSres$anchor)
+DSres$anchor <- gsub("Oligodendrocyte", "Oligoden\ndrocyte", DSres$anchor)
 fig4_d= ggplot(dat=DSres, aes(x =  neighbor, y= DS,
                       color = neighbor, alpha= ICG2)) + 
   geom_point(position = position_jitter(width = 0.1, height = 0))+
-  scale_color_manual(values=cbPalette[2:8], name="Neighbor")+
+  scale_color_manual(
+    values = cbPalette[2:8],
+    name = "Neighbor",
+    labels = c("Astrocyte","Endothelial","Excitatory\n neuron","Interneuron", "Microglia", "Oligodendrocyte") 
+  )+
   facet_grid(~ anchor, switch = "x") + 
   # coord_fixed(ratio=1)+
   scale_alpha_manual(values = c(1, 0.01))+
   theme_minimal() + 
   theme(
-     strip.text.x = element_text(angle = 45),   # Customize strip text
+     axis.title.x = element_text(size=title_size), 
+     axis.title.y = element_text(size=title_size), 
+     axis.text.y = element_text(size=axis_text_size), 
+     plot.title = element_text(size = title_size),  
+     strip.text.x = element_text(angle = 15, size = text_size),   # Customize strip text
      strip.background = element_blank(),    # Style strip background
-     strip.placement = "outside",                            # Place strips outside the plot area
+     strip.placement = "outside",           # Place strips outside the plot area
      axis.text.x = element_blank(),
-     
+     legend.text = element_text(size = legend_size),                  
+     legend.title = element_text(size = text_size)                  
    )+ 
    labs(y="Directional Association Score", 
           x="Anchor")+
@@ -172,7 +199,7 @@ fig4_d
 # Fig4e. boxplot of pathway ###################  
 
 GeneList=mouseGOCC[["GOCC_GLUTAMATERGIC_SYNAPSE"]] 
-dat=DSres[which(DSres$anchor=="Excitatory neuron" & DSres$neighbor=="Excitatory neuron"),]
+dat=DSres[which(DSres$anchor=="Excitatory\nneuron" & DSres$neighbor=="Excitatory neuron"),]
 dat$InPath=factor((dat$gene %in% GeneList), levels=c("TRUE", "FALSE"))
 dat$text=ifelse(dat$DS>6, dat$gene, NA)
 
@@ -181,8 +208,13 @@ fig4_e=ggplot(data=dat, aes(x=InPath, y=DS)) +
   geom_jitter(aes( color=ICG2), position = position_jitter(width = 0.2), 
               size = 2, alpha = 0.6)  +
   scale_color_manual(values = c( "darkorange", "#999999"))+
-  geom_text_repel(aes(label =text))+
+  geom_text_repel(aes(label =text),fontface = "italic")+
   theme_classic()+
+  theme(axis.title.x = element_text(size=text_size), 
+        axis.title.y = element_text(size=text_size), 
+        axis.text.x = element_text(size=axis_text_size), 
+        axis.text.y = element_text(size=axis_text_size), 
+        legend.text=element_text(size=legend_size))+
   coord_fixed(ratio=0.3)+
   labs(y="Directional Association Score", 
        x="In GO Term Glutamatergic Synapse")+
@@ -216,35 +248,30 @@ dist.cutoff<-seqfish_res_list[["Excitatory neuron-Excitatory neuron"]]$dist.cuto
 }
 
 {
-  title_size_main <- 11
-  title_size <- 10
-  text_size <- 10
-  axis_text_size <- 9}
-{
   fig4_f1 <- ggplot(gene1, aes(x = dist, y = expr)) + 
     ggdist::stat_halfeye(adjust = .5, width = .6, .width = 0, justification = -.3, point_colour = NA)+ 
     geom_boxplot( width = .25, outlier.shape = NA) + geom_point(size = 1.3, alpha = .3, position = position_jitter(seed = 1, width = .1))+
-    coord_cartesian(xlim = c(1.2, NA), clip = "off") + xlab("Interaction Distance") + ylab("Expression") + 
+    coord_cartesian(xlim = c(1.2, NA), ylim = c(0, 4),clip = "off") + xlab("Interaction Distance") + ylab("Expression") + 
     theme_minimal()+
-    coord_fixed(ratio=0.6)+
     theme(axis.title.x = element_text(size=text_size), 
           axis.title.y = element_text(size=text_size), 
           axis.text.x = element_text(size=axis_text_size), 
           axis.text.y = element_text(size=axis_text_size), 
-          plot.title = element_text(size = title_size,hjust = 0.5)) + 
+          plot.title = element_text(size = title_size,hjust = 0.5,face = "italic")) + 
     ggtitle("Cplx1")
-
+  #coord_fixed(ratio=0.6)+
   fig4_f2 <- ggplot(gene2, aes(x = dist, y = expr)) + 
     ggdist::stat_halfeye(adjust = .5, width = .6, .width = 0, justification = -.3, point_colour = NA)+ 
     geom_boxplot( width = .25, outlier.shape = NA) + geom_point(size = 1.3, alpha = .3, position = position_jitter(seed = 1, width = .1))+
-    coord_cartesian(xlim = c(1.2, NA), clip = "off") + xlab("Interaction Distance") + ylab("Expression") + 
+    coord_cartesian(xlim = c(1.2, NA),ylim = c(0, 4), clip = "off") + xlab("Interaction Distance") + ylab("Expression") + 
     theme_minimal()+
-    coord_fixed(ratio=0.6)+
     theme(axis.title.x = element_text(size=text_size), 
           axis.title.y = element_text(size=text_size), 
           axis.text.x = element_text(size=axis_text_size), 
           axis.text.y = element_text(size=axis_text_size), 
-          plot.title = element_text(size = title_size,hjust = 0.5)) + 
+          legend.title=element_text(size=text_size),
+          legend.text=element_text(size=legend_size),
+          plot.title = element_text(size = title_size,hjust = 0.5,face = "italic")) + 
     ggtitle("Nsmf")
 }
 fig4_f1
