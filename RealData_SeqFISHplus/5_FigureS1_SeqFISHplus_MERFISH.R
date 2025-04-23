@@ -28,8 +28,10 @@ for(i in names(seqfish_res_list)){
 seq_df<-as.data.frame(seq_df)
 seq_df<-seq_df%>% group_by(anchor)%>%mutate(position = rank(-distance))
 
+factor=(15/(102.6))
+seq_df$distance_upadate<-seq_df$distance*factor
 
-p1 <- ggplot(seq_df, aes(x = anchor, y = distance/10, fill = neighbor, group = position)) + 
+p1 <- ggplot(seq_df, aes(x = anchor, y = distance_upadate, fill = neighbor, group = position)) + 
   geom_bar(stat="Identity", position="dodge")+ 
   coord_flip() + 
   scale_fill_manual(values = cbPalette[c(2:7)], name="Neighbor") + 
@@ -39,7 +41,7 @@ p1 <- ggplot(seq_df, aes(x = anchor, y = distance/10, fill = neighbor, group = p
   theme(axis.title = element_blank(), 
         axis.ticks.y = element_blank(), 
         axis.line = element_blank()) +
-  ylim(0, 50)+
+  ylim(0, 75)+
   theme_minimal()
 p1
 
@@ -87,7 +89,7 @@ p2 <- ggplot(mer_df, aes(x = anchor, y = distance,
   xlab("Anchor") + 
   ylab(expression(paste("Interaction distance (1", mu, "m)", sep=""))) + 
   ggtitle("MERFISH")+ 
-  ylim(0, 50)+
+  ylim(0, 75)+
   theme(axis.title = element_blank(), axis.ticks.y = element_blank(), axis.line = element_blank()) + theme_minimal()
 p2
 
