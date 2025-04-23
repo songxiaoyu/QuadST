@@ -208,16 +208,17 @@ RunNCEM <- function(data, bias=F, alpha=1, adj_method){
   dist.cutoff=quantile(dist, probs=0.1) 
   
   dist_mat=spatstat.geom::pairdist(X=meta[, 2:3])
+  diag(dist_mat)<-Inf
   A_mat=1*(dist_mat<dist.cutoff*alpha)
   x_s=1*(A_mat %*% x_l>0)
   x_ts=sapply(1:n, function(f) matrix(outer(x_l[f,], x_s[f,]))) %>% t(.)
-  #idx1=rep(1:5, each=5)
-  #idx2=rep(1:5, times=5)
-  #colnames(x_ts)=paste0("Type", idx1, "_to_", "Type", idx2)
-  # x=cbind(x_l, x_ts, x_c)
+  idx1=rep(1:5, each=5)
+  idx2=rep(1:5, times=5)
+  colnames(x_ts)=paste0("Type", idx1, "_to_", "Type", idx2)
+  x=cbind(x_ts,x_l)
   
   ## NECM linear model regression
-  res_j <- sapply(1:g, function(f) summary(lm(y[,f] ~ x_ts-1))$coefficient[6,4])
+  res_j <- sapply(1:g, function(f) summary(lm(y[,f] ~ x-1))$coefficient["xType2_to_Type1",4])
   
   if(adj_method=="Raw"){
     return(res_j)
