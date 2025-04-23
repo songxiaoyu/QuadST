@@ -1,3 +1,11 @@
+# TableS4-merfish. xlsx: Summary sheet, Linear Regression, Giotto Network, NCEM(59um), NCEM(69um), NCEM(79um), Giotto(59um), Giotto(69um), Giotto(79um)
+## *---------------------------
+##
+## Script name: TableS4
+##
+## Purpose of script: algorithm comparison
+##
+## *---------------------------
 # Preprocess ------------------------
 rm(list=ls())
 library(data.table)

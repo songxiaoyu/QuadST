@@ -1,7 +1,15 @@
-# Preprocess ------------------------
-## Input: 1. cortex_svz_expression.txt
-##        2. cortex_svz_centroids_coord.txt
-##        3. cortex_svz_centroids_annot.txt
+# TableS3-seqfish. xlsx: Summary sheet, Linear Regression, Giotto Network, NCEM(59um), NCEM(69um), NCEM(79um), Giotto(59um), Giotto(69um), Giotto(79um)
+## *---------------------------
+##
+## Script name: TableS3
+##
+## Purpose of script: algorithm comparison
+##
+## *---------------------------
+##
+## Notes:
+##   
+## *---------------------------
 rm(list=ls())
 library(QuadST)
 library(data.table)
