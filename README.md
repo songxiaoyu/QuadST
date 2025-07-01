@@ -1,7 +1,13 @@
 
 # `QuadST: A Powerful and Robust Approach for Identifying Cell–Cell Interaction-Changed Genes on Spatially Resolved Transcriptomics`
 
-A full description of the method can be found at XXX
+A full description of the method can be found at:
+<https://genome.cshlp.org/content/early/2025/06/23/gr.279859.124.abstract>
+
+Reference: Song, Xiaoyu, Yuqing Shang, Michelle Ehrlich, Panos Roussos,
+Guo-Cheng Yuan, and Pei Wang. “QuadST identifies cell-cell
+interaction-changed genes in spatially resolved transcriptomics data.”
+Genome Research (2025): gr-279859.
 
 ## Installation
 
@@ -33,7 +39,7 @@ sessionInfo()
     ## locale:
     ## [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
     ## 
-    ## time zone: Asia/Singapore
+    ## time zone: America/Los_Angeles
     ## tzcode source: internal
     ## 
     ## attached base packages:
@@ -46,32 +52,30 @@ sessionInfo()
     ##  [5] GenomicRanges_1.56.2        GenomeInfoDb_1.40.1        
     ##  [7] IRanges_2.38.1              S4Vectors_0.42.1           
     ##  [9] BiocGenerics_0.50.0         MatrixGenerics_1.16.0      
-    ## [11] matrixStats_1.4.1           BiocManager_1.30.25        
-    ## [13] devtools_2.4.5              usethis_3.0.0              
+    ## [11] matrixStats_1.5.0           BiocManager_1.30.26        
+    ## [13] devtools_2.4.5              usethis_3.1.0              
     ## 
     ## loaded via a namespace (and not attached):
-    ##  [1] xfun_0.49               htmlwidgets_1.6.4       remotes_2.5.0          
-    ##  [4] processx_3.8.4          lattice_0.22-6          callr_3.7.6            
-    ##  [7] vctrs_0.6.5             tools_4.4.1             ps_1.8.1               
-    ## [10] curl_6.0.1              Matrix_1.7-0            desc_1.4.3             
-    ## [13] lifecycle_1.0.4         GenomeInfoDbData_1.2.12 compiler_4.4.1         
-    ## [16] MatrixModels_0.5-3      QRank_1.0               SparseM_1.84-2         
-    ## [19] httpuv_1.6.15           quantreg_5.99.1         htmltools_0.5.8.1      
-    ## [22] yaml_2.3.10             later_1.3.2             crayon_1.5.3           
-    ## [25] urlchecker_1.0.1        MASS_7.3-61             ellipsis_0.3.2         
-    ## [28] cachem_1.1.0            DelayedArray_0.30.1     sessioninfo_1.2.2      
-    ## [31] abind_1.4-8             mime_0.12               digest_0.6.37          
-    ## [34] purrr_1.0.2             splines_4.4.1           fastmap_1.2.0          
-    ## [37] grid_4.4.1              cli_3.6.3               SparseArray_1.4.8      
-    ## [40] magrittr_2.0.3          S4Arrays_1.4.1          survival_3.7-0         
-    ## [43] pkgbuild_1.4.4          UCSC.utils_1.0.0        promises_1.3.0         
-    ## [46] rmarkdown_2.29          XVector_0.44.0          httr_1.4.7             
-    ## [49] memoise_2.0.1           shiny_1.9.1             evaluate_1.0.1         
-    ## [52] knitr_1.49              miniUI_0.1.1.1          profvis_0.4.0          
-    ## [55] rlang_1.1.4             Rcpp_1.0.13-1           xtable_1.8-4           
-    ## [58] glue_1.8.0              pkgload_1.4.0           rstudioapi_0.17.1      
-    ## [61] jsonlite_1.8.9          R6_2.5.1                fs_1.6.5               
-    ## [64] zlibbioc_1.50.0
+    ##  [1] xfun_0.52               htmlwidgets_1.6.4       remotes_2.5.0          
+    ##  [4] lattice_0.22-7          vctrs_0.6.5             tools_4.4.1            
+    ##  [7] curl_6.4.0              Matrix_1.7-3            lifecycle_1.0.4        
+    ## [10] GenomeInfoDbData_1.2.12 compiler_4.4.1          QRank_1.0              
+    ## [13] MatrixModels_0.5-4      SparseM_1.84-2          httpuv_1.6.16          
+    ## [16] quantreg_6.1            htmltools_0.5.8.1       yaml_2.3.10            
+    ## [19] later_1.4.2             crayon_1.5.3            urlchecker_1.0.1       
+    ## [22] MASS_7.3-65             ellipsis_0.3.2          cachem_1.1.0           
+    ## [25] DelayedArray_0.30.1     sessioninfo_1.2.3       abind_1.4-8            
+    ## [28] mime_0.13               digest_0.6.37           purrr_1.0.4            
+    ## [31] splines_4.4.1           fastmap_1.2.0           grid_4.4.1             
+    ## [34] cli_3.6.5               SparseArray_1.4.8       magrittr_2.0.3         
+    ## [37] S4Arrays_1.4.1          survival_3.8-3          pkgbuild_1.4.8         
+    ## [40] UCSC.utils_1.0.0        promises_1.3.3          rmarkdown_2.29         
+    ## [43] XVector_0.44.0          httr_1.4.7              memoise_2.0.1          
+    ## [46] shiny_1.10.0            evaluate_1.0.4          knitr_1.50             
+    ## [49] miniUI_0.1.2            profvis_0.4.0           rlang_1.1.6            
+    ## [52] Rcpp_1.0.14             xtable_1.8-4            glue_1.8.0             
+    ## [55] pkgload_1.4.0           rstudioapi_0.17.1       jsonlite_2.0.0         
+    ## [58] R6_2.6.1                fs_1.6.6                zlibbioc_1.50.0
 
 ### Load a public data set
 

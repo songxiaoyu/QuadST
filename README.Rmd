@@ -4,7 +4,9 @@ output: github_document
 
 # `QuadST: A Powerful and Robust Approach for Identifying Cell–Cell Interaction-Changed Genes on Spatially Resolved Transcriptomics`
 
-A full description of the method can be found at XXX
+A full description of the method can be found at: https://genome.cshlp.org/content/early/2025/06/23/gr.279859.124.abstract 
+
+Reference: Song, Xiaoyu, Yuqing Shang, Michelle Ehrlich, Panos Roussos, Guo-Cheng Yuan, and Pei Wang. "QuadST identifies cell-cell interaction-changed genes in spatially resolved transcriptomics data." Genome Research (2025): gr-279859.
 
 ## Installation
 
